@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              BigInt        @id @default(autoincrement())
+  email           String        @unique @db.VarChar(255)
+  rocketChatId    String        @db.VarChar(255)
+  rocketChatUrl   String        @db.VarChar(255)
+  rocketChatToken String        @db.VarChar(255) // for making rocket.chat requests
+  webhookToken    String        @db.VarChar(255) // for receiving webhooks
+  commandToken    String        @db.VarChar(255) // for receiving commands
+  createdAt       BigInt        @default(dbgenerated("EXTRACT(EPOCH FROM NOW()) * 1000"))
+  Instance        Instance[]
+  RoomMapping     RoomMapping[]
+}
+
+model Instance {
+  id               BigInt        @id @default(autoincrement())
+  idInstance       BigInt        @unique
+  apiTokenInstance String        @db.VarChar(255)
+  userId           BigInt
+  user             User          @relation(fields: [userId], references: [id])
+  /// [InstanceSettings]
+  settings         Json?         @default("{}")
+  createdAt        BigInt        @default(dbgenerated("EXTRACT(EPOCH FROM NOW()) * 1000"))
+  RoomMapping      RoomMapping[]
+}
+
+model RoomMapping {
+  id         BigInt   @id @default(autoincrement())
+  roomId     String   @db.VarChar(255)
+  userId     BigInt
+  user       User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  instanceId BigInt
+  instance   Instance @relation(fields: [instanceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  createdAt  BigInt
+
+  @@unique([roomId, userId])
+  @@index([instanceId])
+  @@index([createdAt])
+}
