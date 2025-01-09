@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from "@nestjs/common";
+import {
+	Injectable,
+	CanActivate,
+	ExecutionContext,
+	HttpStatus,
+	HttpException,
+} from "@nestjs/common";
 import { DatabaseService } from "../../database/database.service";
 import { RocketChatWebhook } from "../../types/types";
 
@@ -10,24 +16,26 @@ export class RocketChatWebhookGuard implements CanActivate {
 		const request = context.switchToHttp().getRequest();
 		const token = request.headers["x-rocketchat-livechat-token"];
 		if (!token) {
-			throw new UnauthorizedException("X-Rocketchat-Livechat-Token header is missing");
+			throw new HttpException({message: "X-Rocketchat-Livechat-Token header is missing"}, HttpStatus.OK);
 		}
 
 		const message = request.body as RocketChatWebhook;
 		const agentEmail = message?.agent?.email;
 
 		if (!agentEmail) {
-			throw new UnauthorizedException("Invalid webhook format");
+			throw new HttpException({message: "Invalid webhook format"}, HttpStatus.OK);
 		}
 		const user = await this.db.findUser(agentEmail);
-
+		let instance = await this.db.findInstanceByRoomId(message.messages[0].rid, agentEmail);
 		if (!user) {
-			throw new UnauthorizedException("No user with such credentials");
+			throw new HttpException({message: "No user with such credentials"}, HttpStatus.OK);
 		} else if (user.webhookToken !== token) {
-			throw new UnauthorizedException("Invalid token");
+			throw new HttpException({message: "Invalid token"}, HttpStatus.OK);
+		} else if (!instance) {
+			throw new HttpException({message: "Instance by room mapping is not found"}, HttpStatus.OK);
 		}
 
-		request.user = user;
+		request.instance = instance;
 		return true;
 	}
 }
