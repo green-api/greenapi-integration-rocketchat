@@ -1,0 +1,6 @@
+greenapi-integration-rocketchat-app
+.gitignore
+.git
+.idea
+dist
+node_modules
