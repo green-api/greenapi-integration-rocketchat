@@ -1,42 +1,42 @@
 import {
-	BadRequestException,
 	Body,
 	Controller,
 	HttpCode,
 	Logger,
-	Post,
+	Post, Req,
 	UseGuards,
 } from "@nestjs/common";
 import { CoreService } from "../core/core.service";
-import { DatabaseService } from "../database/database.service";
-import { IncomingGreenApiWebhook } from "@green-api/greenapi-integration";
+import { GreenApiWebhook } from "@green-api/greenapi-integration";
 import { RocketChatWebhook, RocketChatCommand } from "../types/types";
 import { RocketChatCommandGuard } from "./guards/rocket-chat-command.guard";
 import { RocketChatWebhookGuard } from "./guards/rocket-chat-webhook.guard";
 import { GreenApiGuard } from "./guards/green-api.guard";
+import { Instance } from "@prisma/client";
+
+interface ExtRequest extends Request {
+	instance?: Instance;
+}
 
 @Controller("webhook")
 export class GatewayController {
 	private readonly logger = new Logger(GatewayController.name);
 
-	constructor(
-		private readonly rocketChatService: CoreService,
-		private readonly db: DatabaseService,
-	) {}
+	constructor(private readonly rocketChatService: CoreService) {}
 
 	@Post("green-api")
 	@UseGuards(GreenApiGuard)
 	@HttpCode(200)
 	async handleGreenApiWebhook(
-		@Body() webhook: IncomingGreenApiWebhook,
+		@Body() webhook: GreenApiWebhook,
 	) {
-		try {
-			this.rocketChatService.handleGreenApiWebhook(webhook, ["incomingMessageReceived"]);
-			return {status: "ok"};
-		} catch (error) {
-			this.logger.error(`Error handling GREEN-API webhook: ${error.message}`);
-			throw error;
+		if (webhook.typeWebhook === "incomingMessageReceived") {
+			this.logger.log(`Message from visitor ${webhook.senderData.chatId} to instance with id ${webhook.instanceData.idInstance}`);
 		}
+		this.rocketChatService.handleGreenApiWebhook(webhook, ["incomingMessageReceived"]).catch(e => {
+			this.logger.error(`Error handling GREEN-API webhook: ${e.message}`, {e, webhook});
+		});
+		return {status: "ok"};
 	}
 
 	@Post("rocket")
@@ -44,31 +44,13 @@ export class GatewayController {
 	@HttpCode(200)
 	async handleRocketWebhook(
 		@Body() message: RocketChatWebhook,
+		@Req() request: ExtRequest,
 	) {
-		try {
-			const roomId = message.messages[0].rid;
-			const agentEmail = message.agent.email;
-			const agentId = message.agent._id;
-
-			const user = await this.db.user.findFirst({
-				where: {rocketChatId: agentId},
-				include: {Instance: true},
-			});
-			if (!user) {
-				throw new BadRequestException("User not found");
-			}
-
-			let instance = await this.db.findInstanceByRoomId(roomId, agentEmail);
-			if (!instance) {
-				throw new BadRequestException("Instance by room mapping not found");
-			}
-
-			await this.rocketChatService.handlePlatformWebhook(message, instance.idInstance);
-			return {status: "ok"};
-		} catch (error) {
-			this.logger.error(`Error handling Rocket.Chat webhook: ${error.message}`);
-			throw error;
-		}
+		this.logger.log(`Message from agent ${message.agent.email} to ${message.visitor.username} on instance ${request.instance.idInstance}`);
+		this.rocketChatService.handlePlatformWebhook(message, request.instance.idInstance).catch(e => {
+			this.logger.error(`Error handling GREEN-API webhook: ${e.message}`, {e, message});
+		});
+		return {status: "ok"};
 	}
 
 	@Post("rocket/:command")
@@ -78,10 +60,10 @@ export class GatewayController {
 		@Body() body: RocketChatCommand,
 	) {
 		try {
+			this.logger.log(`User with email ${body.email} from ${body.rocketChatUrl} invoked command ${body.type}`);
 			return this.rocketChatService.handleCommand(body);
 		} catch (error) {
-			this.logger.error(`Error handling Rocket.Chat command: ${error.message}`);
-			throw error;
+			this.logger.error(`Error handling Rocket.Chat command: ${error.message}`, {body});
 		}
 	}
 }
