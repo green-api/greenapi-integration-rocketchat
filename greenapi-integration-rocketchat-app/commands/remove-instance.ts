@@ -15,14 +15,14 @@ export class RemoveInstanceCommand implements ISlashCommand {
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {
-		const [idInstance, commandToken] = context.getArguments();
+		const [idInstance] = context.getArguments();
 
-		if (!idInstance || !commandToken) {
+		if (!idInstance) {
 			return this.sendMessage(context, modify, "You must provide the following values:\n" +
-				"1. ID of your GREEN-API instance\n" +
-				"2. Your command token");
+				"1. ID of your GREEN-API instance");
 		}
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
+		const commandToken = await read.getEnvironmentReader().getSettings().getValueById("command_token");
 
 		const response = await http.post(`${appUrl}/remove-instance`,
 			{

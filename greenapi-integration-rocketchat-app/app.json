@@ -1,6 +1,6 @@
 {
     "id": "e592b5e2-3d3d-4666-8c49-94a860733a58",
-    "version": "0.0.18",
+    "version": "0.0.31",
     "requiredApiVersion": "^1.44.0",
     "iconFile": "icon.png",
     "author": {
@@ -8,8 +8,8 @@
         "homepage": "green-api.com",
         "support": "support.green-api.com"
     },
-    "name": "greenapi-integration-rocketchat-app",
-    "nameSlug": "greenapi-integration-rocketchat-app",
+    "name": "GREEN-API",
+    "nameSlug": "greenapi",
     "classFile": "GreenapiIntegrationRocketchatApp.ts",
     "description": "An app for connecting rocket.chat with GREEN-API",
     "implements": []

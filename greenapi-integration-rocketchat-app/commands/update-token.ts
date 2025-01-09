@@ -15,15 +15,15 @@ export class UpdateTokenCommand implements ISlashCommand {
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {
-		const [rocketChatId, rocketChatToken, commandToken] = context.getArguments();
+		const [rocketChatId, rocketChatToken] = context.getArguments();
 
-		if (!rocketChatId || !rocketChatToken || !commandToken) {
+		if (!rocketChatId || !rocketChatToken) {
 			return this.sendMessage(context, modify, "You must provide the following values:\n" +
 				"1. Your rocket chat ID\n" +
-				"2. The new token\n" +
-				"3. Your command token");
+				"2. The new token");
 		}
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
+		const commandToken = await read.getEnvironmentReader().getSettings().getValueById("command_token");
 
 		const response = await http.post(`${appUrl}/update-token`,
 			{

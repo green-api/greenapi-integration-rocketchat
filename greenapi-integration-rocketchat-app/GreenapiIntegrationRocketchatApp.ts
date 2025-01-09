@@ -1,4 +1,8 @@
-import { IAppAccessors, IConfigurationExtend, ILogger } from "@rocket.chat/apps-engine/definition/accessors";
+import {
+	IAppAccessors,
+	IConfigurationExtend,
+	ILogger,
+} from "@rocket.chat/apps-engine/definition/accessors";
 import { App } from "@rocket.chat/apps-engine/definition/App";
 import { IAppInfo } from "@rocket.chat/apps-engine/definition/metadata";
 import { SettingType } from "@rocket.chat/apps-engine/definition/settings";
@@ -20,7 +24,16 @@ export class GreenapiIntegrationRocketchatApp extends App {
 			public: true,
 			required: true,
 			i18nLabel: "App URL",
-			i18nDescription: "The base URL for API requests. Change it only if you are using your own version of our adapter.",
+			i18nDescription: "The base URL for API requests. Change it only if you are using your own version of GREEN-API adapter.",
+		});
+		await configuration.settings.provideSetting({
+			id: "command_token",
+			type: SettingType.STRING,
+			packageValue: "",
+			public: false,
+			required: false,
+			i18nLabel: "Command token",
+			i18nDescription: "The command token for API requests. You will need to manually input here the generated token after you call the 'greenapi.register' command.",
 		});
 		await configuration.slashCommands.provideSlashCommand(new RegisterCommand());
 		await configuration.slashCommands.provideSlashCommand(new CreateInstanceCommand());
