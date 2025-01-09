@@ -49,9 +49,26 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				this.logger.debug(`Room mapping for room ${room.rid} and instance ${instance.idInstance} already exists, skipping this step`);
 			}
 			if (message.file) {
-				await this.handleFileMessage(message, room.rid, visitor.token, client);
+				const fileResponse = await axios.get(message.file.url, {responseType: "arraybuffer"});
+				const blob = new Blob([fileResponse.data], {type: message.file.mimeType});
+
+				const formData = new FormData();
+				formData.append("file", blob, message.file.fileName);
+				formData.append("msg", message.file.caption || "");
+
+				await client.post(`/livechat/upload/${room.rid}`, formData, {
+					headers: {
+						"Content-Type": "multipart/form-data",
+						"X-Visitor-Token": visitor.token,
+					},
+				});
 			} else {
-				await this.handleTextMessage(message, room.rid, visitor.token, client);
+				const response = await client.post("/livechat/message", {
+					token: visitor.token,
+					rid: room.rid,
+					msg: message.msg,
+				});
+				this.logger.log(response.data);
 			}
 		} catch (error) {
 			if (error.response) {
@@ -68,30 +85,6 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 			const errorMessage = error.response?.data?.error || error.message || "Failed to send message to RocketChat";
 			throw new InternalServerErrorException(errorMessage);
 		}
-	}
-
-	private async handleFileMessage(message: TransformedRocketChatWebhook, rid: string, visitorToken: string, client: AxiosInstance): Promise<void> {
-		const fileResponse = await axios.get(message.file.url, {responseType: "arraybuffer"});
-		const blob = new Blob([fileResponse.data], {type: message.file.mimeType});
-
-		const formData = new FormData();
-		formData.append("file", blob, message.file.fileName);
-		formData.append("msg", message.file.caption || "");
-
-		await client.post(`/livechat/upload/${rid}`, formData, {
-			headers: {
-				"Content-Type": "multipart/form-data",
-				"X-Visitor-Token": visitorToken,
-			},
-		});
-	}
-
-	private async handleTextMessage(message: TransformedRocketChatWebhook, rid: string, visitorToken: string, client: AxiosInstance): Promise<void> {
-		await client.post("/livechat/message", {
-			token: visitorToken,
-			rid,
-			msg: message.msg,
-		});
 	}
 
 	private async createVisitor(token: string, name: string, client: AxiosInstance) {
@@ -118,7 +111,6 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				LivechatWebhookUrl: process.env.APP_URL + "/api/webhook/rocket",
 				LivechatSecretToken: webhookToken,
 				LivechatWebhookOnAgentMessage: true,
-				LivechatWebhookOnStart: true,
 				LivechatHttpTimeout: 10000,
 			}, {
 				headers: {
@@ -127,7 +119,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				},
 			});
 		} catch (error) {
-			this.logger.error(`Error when trying to set a rocket.chat webhook: ${error.message}`);
+			this.logger.error(`Error when trying to set a rocket.chat webhook: ${error.message}`, {error: error.response.data});
 			throw new BadRequestException("Incorrect data provided");
 		}
 	}
@@ -150,7 +142,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				});
 				return {
 					message: `Registration successful. Your command token for invoking other commands: ${user.commandToken}. ` +
-						`Always include it in the end of the command.`,
+						`Add it in the GREEN-API app settings.`,
 				};
 			case "update-token":
 				if (Object.values(body).some(value => !value)) {
@@ -171,6 +163,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					webhookUrl: process.env.APP_URL + "/api/webhook/green-api",
 					webhookUrlToken: generateRandomToken(),
 					incomingWebhook: "yes",
+					pollMessageWebhook: "yes",
 				}, body.email).then(r => r.idInstance);
 			case "remove-instance":
 				if (!body.idInstance) {
