@@ -90,9 +90,10 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 	private async createVisitor(token: string, name: string, client: AxiosInstance) {
 		const response = await client.post("/livechat/visitor", {
 			visitor: {
-				token,
+				token: `greenapi:${token}`,
 				name,
-				phone: token,
+				phone: token.replace(/@[cg]\.us$/, ""),
+				username: `greenapi:${token}`,
 			},
 		});
 		return response.data.visitor;
