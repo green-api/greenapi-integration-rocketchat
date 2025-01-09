@@ -3,7 +3,8 @@
 - [Documentation in English](./README.md)
 
 Эта интеграция обеспечивает взаимодействие с WhatsApp в Rocket.Chat через платформу GREEN-API. Разработана на
-базе [Universal Integration Platform](https://github.com/green-api/greenapi-integration) от GREEN-API и состоит из двух частей:
+базе [Universal Integration Platform](https://github.com/green-api/greenapi-integration) от GREEN-API и состоит из двух
+частей:
 
 1. Адаптер - приложение NestJS, обеспечивающее взаимодействие между Rocket.Chat и GREEN-API
 2. Приложение Rocket.Chat - сопутствующее приложение, предоставляющее слэш-команды для управления интеграцией
@@ -31,7 +32,7 @@
 ## Предварительные требования
 
 - База данных PostgreSQL
-- Node.js 18 или выше
+- Node.js 20 или выше
 - Аккаунт и инстанс GREEN-API
 - Сервер Rocket.Chat (коробочная или облачная версия)
 
@@ -79,7 +80,7 @@ npm run start:prod
 
 1. Перейдите в панель администрирования Rocket.Chat
 2. Перейдите в раздел Apps -> Private Apps -> Upload Private App
-3. Выберите файл `greenapi-integration-rocketchat-app_X.X.X.zip` из папки проекта
+3. Выберите файл `greenapi_X.X.X.zip` из папки проекта
    `greenapi-integration-rocketchat-app/app`
    и загрузите его
 4. Настройте URL-адрес в настройках загруженного приложения, указав адрес вашего адаптера
@@ -121,19 +122,15 @@ volumes:
 ### Dockerfile
 
 ```dockerfile
-FROM node:18-alpine
-
+FROM node:20-alpine
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm ci
-
 COPY . .
+RUN npx prisma generate
 RUN npm run build
-
 EXPOSE 3000
-
-CMD ["npm", "run", "start:prod"]
+CMD npx prisma migrate deploy && npm run start:prod
 ```
 
 Для развертывания с помощью Docker Compose:
@@ -154,35 +151,48 @@ docker-compose down
 
 ## Использование приложения
 
-1. Зарегистрируйте свой аккаунт в адаптере:
+### 1. Зарегистрируйте свой аккаунт в адаптере:
+
 ```
 /greenapi.register [rocket-chat-id] [rocket-chat-token]
 ```
+
 - `rocket-chat-id`: Ваш ID в Rocket.Chat
 - `rocket-chat-token`: Ваш персональный API токен Rocket.Chat
 
-Сохраните командный токен из ответа для дальнейшего использования.
+В ответе вы получите командный токен. **Вам необходимо вставить этот токен в настройках приложения GREEN-API:**
 
-2. Создайте инстанс GREEN-API:
+1. Нажмите ⋮ в левом верхнем углу домашней страницы Rocket.chat
+2. Перейдите в Marketplace > Private Apps > GREEN-API > Settings
+3. Найдите поле "Command token"
+4. Вставьте ваш токен
+5. Сохраните изменения
+
+![Настройки командного токена GREEN-API](./assets/command-token-settings.png)
+
+### 2. Создайте инстанс GREEN-API:
+
 ```
-/greenapi.create-instance [instance-id] [instance-token] [command-token]
+/greenapi.create-instance [instance-id] [instance-token]
 ```
+
 - `instance-id`: ID вашего инстанса GREEN-API
 - `instance-token`: API токен вашего инстанса GREEN-API
-- `command-token`: Токен, полученный после регистрации
 
 3. Подождите примерно 2 минуты, пока применятся настройки.
 
 
-4. Для проверки соединения напишите сообщение на номер WhatsApp, подключенный к вашему инстансу GREEN-API - в Rocket.Chat появится новый чат с этим сообщением.
+4. Для проверки соединения напишите сообщение на номер WhatsApp, подключенный к вашему инстансу GREEN-API - в
+   Rocket.Chat появится новый чат с этим сообщением.
 
 
 5. Начните использовать WhatsApp в Rocket.Chat!
 
-Другие доступные команды:
+### Другие доступные команды:
+
 ```
-/greenapi.remove-instance [instance-id] [command-token]
-/greenapi.update-token [rocket-chat-id] [rocket-chat-token] [command-token]
+/greenapi.remove-instance [instance-id]
+/greenapi.update-token [rocket-chat-id] [rocket-chat-token]
 ```
 
 ## Лицензия
