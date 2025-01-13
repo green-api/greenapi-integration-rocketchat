@@ -7,45 +7,38 @@ generator json {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id              BigInt        @id @default(autoincrement())
-  email           String        @unique @db.VarChar(255)
-  rocketChatId    String        @db.VarChar(255)
-  rocketChatUrl   String        @db.VarChar(255)
-  rocketChatToken String        @db.VarChar(255) // for making rocket.chat requests
-  webhookToken    String        @db.VarChar(255) // for receiving webhooks
-  commandToken    String        @db.VarChar(255) // for receiving commands
-  createdAt       BigInt        @default(dbgenerated("EXTRACT(EPOCH FROM NOW()) * 1000"))
+  id              BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  email           String     @unique @db.VarChar(255)
+  rocketChatId    String     @db.VarChar(255)
+  rocketChatUrl   String     @db.VarChar(255)
+  rocketChatToken String     @db.VarChar(255) // for making rocket.chat requests
+  webhookToken    String     @db.VarChar(255) // for receiving webhooks
+  commandToken    String     @db.VarChar(255) // for receiving commands
+  createdAt       BigInt     @default(dbgenerated("(UNIX_TIMESTAMP(NOW(3)) * 1000)")) @db.UnsignedBigInt
   Instance        Instance[]
-  RoomMapping     RoomMapping[]
+}
+
+enum InstanceState {
+  notAuthorized
+  authorized
+  yellowCard
+  blocked
+  starting
 }
 
 model Instance {
-  id               BigInt        @id @default(autoincrement())
-  idInstance       BigInt        @unique
+  id               BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  idInstance       BigInt        @unique @db.UnsignedBigInt
   apiTokenInstance String        @db.VarChar(255)
-  userId           BigInt
+  stateInstance    InstanceState
+  userId           BigInt        @db.UnsignedBigInt
   user             User          @relation(fields: [userId], references: [id])
   /// [InstanceSettings]
-  settings         Json?         @default("{}")
-  createdAt        BigInt        @default(dbgenerated("EXTRACT(EPOCH FROM NOW()) * 1000"))
-  RoomMapping      RoomMapping[]
-}
-
-model RoomMapping {
-  id         BigInt   @id @default(autoincrement())
-  roomId     String   @db.VarChar(255)
-  userId     BigInt
-  user       User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  instanceId BigInt
-  instance   Instance @relation(fields: [instanceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  createdAt  BigInt
-
-  @@unique([roomId, userId])
-  @@index([instanceId])
-  @@index([createdAt])
+  settings         Json?         @default("{}") // GREEN-API settings
+  createdAt        BigInt        @default(dbgenerated("(UNIX_TIMESTAMP(NOW(3)) * 1000)")) @db.UnsignedBigInt
 }

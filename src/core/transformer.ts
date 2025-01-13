@@ -1,10 +1,9 @@
 import {
-	MessageTransformer,
-	Message,
-	GreenApiWebhook,
-	formatPhoneNumber,
 	extractPhoneNumberFromVCard,
+	GreenApiWebhook,
 	IntegrationError,
+	Message,
+	MessageTransformer,
 } from "@green-api/greenapi-integration";
 import { RocketChatWebhook, TransformedRocketChatWebhook } from "../types/types";
 import { Injectable } from "@nestjs/common";
@@ -13,7 +12,7 @@ import { Injectable } from "@nestjs/common";
 export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook, TransformedRocketChatWebhook> {
 	// Transform GREEN-API webhook to RocketChat message format
 	toPlatformMessage(webhook: GreenApiWebhook): TransformedRocketChatWebhook {
-		if ("messageData" in webhook) {
+		if (webhook.typeWebhook === "incomingMessageReceived") {
 			switch (webhook.messageData.typeMessage) {
 				case "textMessage":
 					return {
@@ -102,12 +101,12 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 	// Transform RocketChat webhook to GREEN-API message format
 	toGreenApiMessage(webhook: RocketChatWebhook): Message {
 		const message = webhook.messages[0];
-		const chatType = webhook.visitor.token.includes("@g.us") ? "group" : "private";
+		const chatId = webhook.visitor.username.split(":")[1];
 
 		if (message.fileUpload) {
 			return {
 				type: "url-file",
-				chatId: formatPhoneNumber(webhook.visitor.token, chatType),
+				chatId,
 				file: {
 					url: message.fileUpload.publicFilePath,
 					fileName: message.file?.name || "file",
@@ -118,13 +117,13 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 
 		return {
 			type: "text",
-			chatId: formatPhoneNumber(webhook.visitor.token, chatType),
+			chatId,
 			message: this.removeQuotedPart(message.msg) || "",
 		};
 	}
 
 	// a function to remove the quoted part of rocket.chat messages
-	removeQuotedPart(msg) {
+	removeQuotedPart(msg: string) {
 		if (msg.startsWith("[ ](")) {
 			const quoteEnd = msg.indexOf(")\n");
 			if (quoteEnd !== -1) {

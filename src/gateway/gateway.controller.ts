@@ -32,8 +32,10 @@ export class GatewayController {
 	) {
 		if (webhook.typeWebhook === "incomingMessageReceived") {
 			this.logger.log(`Message from visitor ${webhook.senderData.chatId} to instance with id ${webhook.instanceData.idInstance}`);
+		} else if (webhook.typeWebhook === "stateInstanceChanged") {
+			this.logger.log(`Status of ${webhook.instanceData.idInstance} instance was changed to ${webhook.stateInstance}`);
 		}
-		this.rocketChatService.handleGreenApiWebhook(webhook, ["incomingMessageReceived"]).catch(e => {
+		this.rocketChatService.handleGreenApiWebhook(webhook, ["incomingMessageReceived", "stateInstanceChanged"]).catch(e => {
 			this.logger.error(`Error handling GREEN-API webhook: ${e.message}`, {e, webhook});
 		});
 		return {status: "ok"};
@@ -46,9 +48,14 @@ export class GatewayController {
 		@Body() message: RocketChatWebhook,
 		@Req() request: ExtRequest,
 	) {
-		this.logger.log(`Message from agent ${message.agent.email} to ${message.visitor.username} on instance ${request.instance.idInstance}`);
-		this.rocketChatService.handlePlatformWebhook(message, request.instance.idInstance).catch(e => {
-			this.logger.error(`Error handling GREEN-API webhook: ${e.message}`, {e, message});
+		const instance = request.instance;
+		this.logger.log(`Message from agent ${message.agent.email} to ${message.visitor.username} on instance ${instance.idInstance}`);
+		if (instance.stateInstance === "notAuthorized") {
+            this.logger.warn(`Skipping webhook processing for instance ${instance.idInstance} due to unauthorized state`);
+            return {status: "ok"};
+        }
+		this.rocketChatService.handlePlatformWebhook(message, instance.idInstance).catch(e => {
+			this.logger.error(`Error handling Rocket.chat webhook: ${e.message}`, {e, message});
 		});
 		return {status: "ok"};
 	}

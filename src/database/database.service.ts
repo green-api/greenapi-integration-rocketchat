@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
-import { StorageProvider, Settings } from "@green-api/greenapi-integration";
+import { StorageProvider } from "@green-api/greenapi-integration";
 import { Instance, User } from "@prisma/client";
 
 @Injectable()
@@ -9,18 +9,19 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		await this.$connect();
 	}
 
-	async createInstance(instance: Instance, userId: bigint, settings?: Settings): Promise<Instance> {
+	async createInstance(instance: Instance, userId: bigint): Promise<Instance> {
 		return this.instance.create({
 			data: {
 				idInstance: instance.idInstance,
 				apiTokenInstance: instance.apiTokenInstance,
-				settings: settings || {},
+				stateInstance: instance.stateInstance,
+				settings: instance.settings || {},
 				userId,
 			},
 		});
 	}
 
-	async getInstance(idInstance: number): Promise<Instance | null> {
+	async getInstance(idInstance: number | bigint): Promise<Instance | null> {
 		return this.instance.findUnique({
 			where: {idInstance},
 			include: {user: {select: {id: true}}},
@@ -69,38 +70,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		});
 	}
 
-	async findInstanceByRoomId(roomId: string, email: string): Promise<Instance | null> {
-		const user = await this.user.findUnique({
-			where: {
-				email,
-			},
-			select: {id: true},
-		});
-		if (!user) {
-			throw new BadRequestException("User not found");
-		}
-		const roomMapping = await this.roomMapping.findUnique({
-			where: {
-				roomId_userId: {
-					roomId, userId: user.id,
-				},
-			},
-			include: {
-				instance: true,
-			},
-		});
-
-		return roomMapping?.instance || null;
-	}
-
-	async createRoomMapping(roomId: string, userId: bigint, instanceId: bigint): Promise<void> {
-		await this.roomMapping.create({
-			data: {
-				roomId,
-				userId,
-				instanceId,
-				createdAt: Date.now(),
-			},
-		});
+	async findInstanceByPhoneNumber(phoneNumber: string, email: string): Promise<Instance | null> {
+		return this.instance.findFirst({where: {settings: {path: "$.wid", equals: phoneNumber}, user: {email}}});
 	}
 }

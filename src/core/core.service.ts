@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
-import { BaseAdapter, generateRandomToken } from "@green-api/greenapi-integration";
+import { BaseAdapter, generateRandomToken, WaSettings } from "@green-api/greenapi-integration";
 import {
 	CreateInstanceCommand,
 	RegisterUserData,
@@ -11,6 +11,9 @@ import { RocketChatTransformer } from "./transformer";
 import axios, { AxiosInstance } from "axios";
 import { DatabaseService } from "../database/database.service";
 import { Instance } from "@prisma/client";
+import {
+	StateInstanceWebhook,
+} from "../../../greenapi-integration";
 
 @Injectable()
 export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocketChatWebhook> {
@@ -41,13 +44,8 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 	async sendToPlatform(message: TransformedRocketChatWebhook, instance: Instance): Promise<void> {
 		try {
 			const client = await this.createPlatformClient(instance);
-			const visitor = await this.createVisitor(message.token, message.name, client);
+			const visitor = await this.createVisitor(message.token, message.name, client, instance.settings.wid.split("@")[0]);
 			const room = await this.createRoom(visitor.token, client);
-			try {
-				await this.storage.createRoomMapping(room.rid, instance.userId, instance.id);
-			} catch (e) {
-				this.logger.debug(`Room mapping for room ${room.rid} and instance ${instance.idInstance} already exists, skipping this step`);
-			}
 			if (message.file) {
 				const fileResponse = await axios.get(message.file.url, {responseType: "arraybuffer"});
 				const blob = new Blob([fileResponse.data], {type: message.file.mimeType});
@@ -63,12 +61,11 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					},
 				});
 			} else {
-				const response = await client.post("/livechat/message", {
+				await client.post("/livechat/message", {
 					token: visitor.token,
 					rid: room.rid,
 					msg: message.msg,
 				});
-				this.logger.log(response.data);
 			}
 		} catch (error) {
 			if (error.response) {
@@ -87,12 +84,29 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		}
 	}
 
-	private async createVisitor(token: string, name: string, client: AxiosInstance) {
+	public async handleStateInstanceWebhook(webhook: StateInstanceWebhook): Promise<void> {
+		const instance = await this.storage.getInstance(webhook.instanceData.idInstance);
+		if (!instance) return;
+
+		await this.storage.instance.update({
+			where: {id: instance.id},
+			data: {
+				settings: {
+					...instance.settings,
+					wid: webhook.instanceData.wid,
+				},
+				stateInstance: webhook.stateInstance,
+			},
+		});
+	}
+
+	private async createVisitor(token: string, name: string, client: AxiosInstance, wid: string) {
+		const cleanToken = token.replace(/@[cg]\.us$/, "");
 		const response = await client.post("/livechat/visitor", {
 			visitor: {
-				token: `greenapi:${token}`,
+				token: `greenapi:${wid}:${cleanToken}`,
 				name,
-				phone: token.replace(/@[cg]\.us$/, ""),
+				phone: cleanToken,
 				username: `greenapi:${token}`,
 			},
 		});
@@ -158,13 +172,26 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				if (Object.values(body).some(value => !value)) {
 					throw new BadRequestException("Instance ID and token are required");
 				}
+				const client = this.createGreenApiClient({
+					idInstance: body.idInstance,
+					apiTokenInstance: body.apiTokenInstance,
+				});
+				let waSettings: WaSettings;
+				try {
+					waSettings = await client.getWaSettings();
+				} catch (error: any) {
+					throw new BadRequestException(`Failed to get settings for instance ${body.idInstance}: ${error.message}`, "INTEGRATION_ERROR");
+				}
 				return this.createInstance({
-					idInstance: BigInt(body.idInstance), apiTokenInstance: body.apiTokenInstance,
-				}, {
-					webhookUrl: process.env.APP_URL + "/api/webhook/green-api",
-					webhookUrlToken: generateRandomToken(),
-					incomingWebhook: "yes",
-					pollMessageWebhook: "yes",
+					idInstance: BigInt(body.idInstance), apiTokenInstance: body.apiTokenInstance, settings: {
+						webhookUrl: process.env.APP_URL + "/api/webhook/green-api",
+						webhookUrlToken: generateRandomToken(),
+						incomingWebhook: "yes",
+						pollMessageWebhook: "yes",
+						stateWebhook: "yes",
+						wid: waSettings.phone ? `${waSettings.phone}@c.us` : undefined,
+					},
+					stateInstance: waSettings.stateInstance,
 				}, body.email).then(r => r.idInstance);
 			case "remove-instance":
 				if (!body.idInstance) {
