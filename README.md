@@ -31,7 +31,7 @@ A Rocket.Chat application that provides slash commands:
 
 ## Prerequisites
 
-- PostgreSQL database
+- MySQL database (5.7 or higher)
 - Node.js 20 or higher
 - GREEN-API account and instance
 - Rocket.Chat server (self-hosted or cloud version)
@@ -56,7 +56,7 @@ npm install
 3. Set up environment variables in `.env`:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/rocket_adapter
+DATABASE_URL=mysql://user:password@localhost:3306/rocket_adapter
 APP_URL=https://your-domain.com
 ```
 
@@ -106,16 +106,17 @@ services:
       - db
 
   db:
-    image: postgres:16
+    image: mysql:8
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=rocket_adapter
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=rocket_adapter
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
 
 volumes:
-  postgres_data:
+  mysql_data:
 ```
 
 ### Dockerfile
@@ -147,6 +148,21 @@ docker-compose down
 
 Note: The deployment configuration is provided as a reference and may need adjustments based on your specific
 environment and requirements.
+
+### Important Note for Self-Hosted Deployments
+
+If you're deploying the adapter on your own server, the adapter requires a public
+URL (APP_URL) that is accessible from the internet. This is necessary for:
+
+- Receiving webhooks from GREEN-API
+- Allowing Rocket.Chat to communicate with the adapter
+
+For self-hosted deployments, make sure to:
+
+1. Configure your network/firewall to allow incoming connections
+2. Set up a domain name or static IP
+3. Configure SSL/TLS for secure communication
+4. Set the APP_URL environment variable to your public URL
 
 ## App usage
 

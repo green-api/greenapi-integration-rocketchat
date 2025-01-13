@@ -56,7 +56,7 @@ npm install
 3. Настройте переменные окружения в файле `.env`:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/rocket_adapter
+DATABASE_URL=mysql://user:password@localhost:3306/rocket_adapter
 APP_URL=https://your-domain.com
 ```
 
@@ -107,16 +107,17 @@ services:
       - db
 
   db:
-    image: postgres:16
+    image: mysql:8
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=rocket_adapter
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=rocket_adapter
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
 
 volumes:
-  postgres_data:
+  mysql_data:
 ```
 
 ### Dockerfile
@@ -148,6 +149,21 @@ docker-compose down
 
 Примечание: Данные файлы предоставлены в качестве примера и могут требовать корректировок в зависимости от ваших
 конкретных условий и требований развертывания.
+
+### Важное примечание для самостоятельного развертывания
+
+Если вы разворачиваете адаптер на собственном сервере, для работы адаптера требуется публичный URL-адрес (APP_URL),
+доступный из интернета. Это необходимо для:
+
+- Получения вебхуков от GREEN-API
+- Обеспечения связи между Rocket.Chat и адаптером
+
+При самостоятельном развертывании убедитесь, что вы:
+
+1. Настроили сеть/файрвол для разрешения входящих соединений
+2. Настроили доменное имя или статический IP-адрес
+3. Настроили SSL/TLS для безопасного соединения
+4. Установили переменную окружения APP_URL, указав ваш публичный URL-адрес
 
 ## Использование приложения
 
