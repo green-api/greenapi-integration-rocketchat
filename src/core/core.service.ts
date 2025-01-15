@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
-import { BaseAdapter, generateRandomToken, WaSettings } from "@green-api/greenapi-integration";
+import { BaseAdapter, generateRandomToken, WaSettings, StateInstanceWebhook } from "@green-api/greenapi-integration";
 import {
 	CreateInstanceCommand,
 	RegisterUserData,
@@ -11,9 +11,6 @@ import { RocketChatTransformer } from "./transformer";
 import axios, { AxiosInstance } from "axios";
 import { DatabaseService } from "../database/database.service";
 import { Instance } from "@prisma/client";
-import {
-	StateInstanceWebhook,
-} from "../../../greenapi-integration";
 
 @Injectable()
 export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocketChatWebhook> {
