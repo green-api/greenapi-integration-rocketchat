@@ -1,5 +1,4 @@
 FROM node:20-alpine
-ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 WORKDIR /app
 COPY package*.json ./
