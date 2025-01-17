@@ -1,10 +1,16 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
-import { BaseAdapter, generateRandomToken, WaSettings, StateInstanceWebhook } from "@green-api/greenapi-integration";
+import {
+	BaseAdapter,
+	generateRandomToken,
+	WaSettings,
+	StateInstanceWebhook,
+	GreenApiClient,
+} from "@green-api/greenapi-integration";
 import {
 	CreateInstanceCommand,
 	RegisterUserData,
 	RocketChatCommand,
-	RocketChatWebhook,
+	RocketChatWebhook, SyncAppUrlCommand,
 	TransformedRocketChatWebhook,
 } from "../types/types";
 import { RocketChatTransformer } from "./transformer";
@@ -200,6 +206,24 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					throw new BadRequestException("Instance ID is required");
 				}
 				return this.removeInstance(BigInt(body.idInstance)).then(r => r.idInstance);
+			case "sync-app-url":
+				body = body as SyncAppUrlCommand;
+				const appUrl = body.appUrl;
+				try {
+					const userId = await this.storage.findUser(body.email).then(r => r.id);
+					const instances = await this.storage.getInstances(userId);
+
+					await Promise.all(instances.map(instance => {
+						const greenApiClient = new GreenApiClient({
+							idInstance: instance.idInstance,
+							apiTokenInstance: instance.apiTokenInstance,
+						});
+						return greenApiClient.setSettings({webhookUrl: appUrl.replace('rocket', 'green-api')});
+					}));
+				} catch (error) {
+					throw new Error(`Failed to update instance settings: ${error.message}`);
+				}
+				break;
 			default:
 				throw new BadRequestException("Unknown command");
 		}

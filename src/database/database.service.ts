@@ -21,6 +21,10 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		});
 	}
 
+	async getInstances(userId: bigint): Promise<Instance[]> {
+		return this.instance.findMany({where: {userId}});
+	}
+
 	async getInstance(idInstance: number | bigint): Promise<Instance | null> {
 		return this.instance.findUnique({
 			where: {idInstance},

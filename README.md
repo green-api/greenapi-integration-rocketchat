@@ -28,6 +28,7 @@ A Rocket.Chat application that provides slash commands:
 - `/greenapi.create-instance` - Create a new GREEN-API instance
 - `/greenapi.remove-instance` - Remove an existing instance
 - `/greenapi.update-token` - Update Rocket.Chat authentication tokens
+- `/greenapi.sync-app-url` - Synchronize webhook URLs of all instances with the current app URL
 
 ## Prerequisites
 
@@ -206,9 +207,19 @@ In the response you will receive a command token. **You need to paste this token
 ### Other available commands:
 
 ```
+// remove the created instance (only in the adapter database)
 /greenapi.remove-instance [instance-id]
+
+// update your rocket.chat token (only in the adapter database)
 /greenapi.update-token [rocket-chat-id] [rocket-chat-token]
+
+// synchronize webhook URLs of all instances with the current app URL
+/greenapi.sync-app-url
 ```
+
+The sync-app-url command is particularly useful when you've changed your adapter's URL or moved it to a different
+domain. It automatically updates the webhook URL settings for all your registered GREEN-API instances to match the
+current app URL defined in your Rocket.Chat GREEN-API app settings.
 
 ## License
 

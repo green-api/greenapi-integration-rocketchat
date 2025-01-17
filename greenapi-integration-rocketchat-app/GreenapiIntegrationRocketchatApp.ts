@@ -10,6 +10,7 @@ import { CreateInstanceCommand } from "./commands/create-instance";
 import { RegisterCommand } from "./commands/register";
 import { RemoveInstanceCommand } from "./commands/remove-instance";
 import { UpdateTokenCommand } from "./commands/update-token";
+import { SyncAppUrlCommand } from "./commands/sync-app-url";
 
 export class GreenapiIntegrationRocketchatApp extends App {
 	constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
@@ -39,5 +40,6 @@ export class GreenapiIntegrationRocketchatApp extends App {
 		await configuration.slashCommands.provideSlashCommand(new CreateInstanceCommand());
 		await configuration.slashCommands.provideSlashCommand(new RemoveInstanceCommand());
 		await configuration.slashCommands.provideSlashCommand(new UpdateTokenCommand());
+		await configuration.slashCommands.provideSlashCommand(new SyncAppUrlCommand());
 	}
 }

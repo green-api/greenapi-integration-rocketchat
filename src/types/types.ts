@@ -93,4 +93,14 @@ export interface RemoveInstanceCommand extends BaseCommandData {
 	idInstance: number;
 }
 
-export type RocketChatCommand = RegisterUserData | UpdateUserData | CreateInstanceCommand | RemoveInstanceCommand;
+export interface SyncAppUrlCommand extends BaseCommandData {
+	type: "sync-app-url";
+	appUrl: string;
+}
+
+export type RocketChatCommand =
+	RegisterUserData
+	| UpdateUserData
+	| CreateInstanceCommand
+	| RemoveInstanceCommand
+	| SyncAppUrlCommand;
