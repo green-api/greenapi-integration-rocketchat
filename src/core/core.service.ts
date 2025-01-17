@@ -29,8 +29,12 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 			throw new Error("User not found");
 		}
 
+		const baseUrl = user.rocketChatUrl.endsWith("/")
+			? user.rocketChatUrl.slice(0, -1)
+			: user.rocketChatUrl;
+
 		return axios.create({
-			baseURL: `${user.rocketChatUrl}/api/v1`,
+			baseURL: `${baseUrl}/api/v1`,
 			headers: {
 				"X-Auth-Token": user.rocketChatToken,
 				"X-User-Id": user.rocketChatId,
