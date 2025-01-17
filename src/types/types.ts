@@ -54,6 +54,7 @@ export interface RocketChatWebhook {
 export interface TransformedRocketChatWebhook {
 	token: string;
 	name: string;
+	id: string;
 	msg?: string;
 	file?: {
 		url: string;

@@ -51,9 +51,9 @@ export class GatewayController {
 		const instance = request.instance;
 		this.logger.log(`Message from agent ${message.agent.email} to ${message.visitor.username} on instance ${instance.idInstance}`);
 		if (instance.stateInstance === "notAuthorized") {
-            this.logger.warn(`Skipping webhook processing for instance ${instance.idInstance} due to unauthorized state`);
-            return {status: "ok"};
-        }
+			this.logger.warn(`Skipping webhook processing for instance ${instance.idInstance} due to unauthorized state`);
+			return {status: "ok"};
+		}
 		this.rocketChatService.handlePlatformWebhook(message, instance.idInstance).catch(e => {
 			this.logger.error(`Error handling Rocket.chat webhook: ${e.message}`, {e, message});
 		});

@@ -62,6 +62,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					token: visitor.token,
 					rid: room.rid,
 					msg: message.msg,
+					_id: `greenapi:${message.id}`,
 				});
 			}
 		} catch (error) {

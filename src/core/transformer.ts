@@ -13,18 +13,22 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 	// Transform GREEN-API webhook to RocketChat message format
 	toPlatformMessage(webhook: GreenApiWebhook): TransformedRocketChatWebhook {
 		if (webhook.typeWebhook === "incomingMessageReceived") {
+			const baseMessage = {
+				token: webhook.senderData.chatId,
+				name: webhook.senderData.chatName || "WhatsApp User",
+				id: webhook.idMessage,
+			};
+
 			switch (webhook.messageData.typeMessage) {
 				case "textMessage":
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						msg: webhook.messageData.textMessageData?.textMessage || "",
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 				case "extendedTextMessage":
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						msg: webhook.messageData.extendedTextMessageData?.text || "",
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 				case "locationMessage": {
 					const location = webhook.messageData.locationMessageData;
@@ -35,9 +39,8 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 					].filter(Boolean).join("\n");
 
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						msg: locationText,
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 				}
 				case "contactMessage": {
@@ -51,9 +54,8 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 					].filter(Boolean).join("\n");
 
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						msg: contactText,
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 				}
 				case "pollMessage": {
@@ -68,9 +70,8 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 					].join("\n");
 
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						msg: pollText,
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 				}
 				case "documentMessage":
@@ -78,20 +79,18 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 				case "imageMessage":
 				case "audioMessage":
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						file: {
 							url: webhook.messageData.fileMessageData!.downloadUrl,
 							fileName: webhook.messageData.fileMessageData!.fileName,
 							caption: webhook.messageData.fileMessageData!.caption,
 							mimeType: webhook.messageData.fileMessageData!.mimeType,
 						},
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 				default:
 					return {
-						token: webhook.senderData.chatId,
+						...baseMessage,
 						msg: "System error: 'Unsupported message type'",
-						name: webhook.senderData.chatName || "WhatsApp User",
 					};
 			}
 		}
@@ -115,14 +114,22 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 			};
 		}
 
+		let quotedMessageId: string | undefined = undefined;
+
+		if (message.msg.includes("?msg=")) {
+			const msgContent = message.msg.split("?msg=")[1];
+			if (msgContent.includes("greenapi:")) {
+				quotedMessageId = msgContent.split("greenapi:")[1].split(")")[0];
+			}
+		}
 		return {
 			type: "text",
 			chatId,
-			message: this.removeQuotedPart(message.msg) || "",
+			message: this.removeQuotedPart(message.msg),
+			quotedMessageId,
 		};
 	}
 
-	// a function to remove the quoted part of rocket.chat messages
 	removeQuotedPart(msg: string) {
 		if (msg.startsWith("[ ](")) {
 			const quoteEnd = msg.indexOf(")\n");
