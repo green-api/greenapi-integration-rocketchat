@@ -1,5 +1,5 @@
 FROM node:20-alpine
-ENV DATABASE_URL=$DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
