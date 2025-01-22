@@ -8,8 +8,8 @@ import {
 	SlashCommandContext,
 } from "@rocket.chat/apps-engine/definition/slashcommands";
 
-export class RegisterCommand implements ISlashCommand {
-	public command = "greenapi.register";
+export class RegisterWorkspaceCommand implements ISlashCommand {
+	public command = "greenapi.register-workspace";
 	public i18nParamsExample = "";
 	public i18nDescription = "";
 	public providesPreview = false;
@@ -19,30 +19,36 @@ export class RegisterCommand implements ISlashCommand {
 
 		if (!rocketChatId || !rocketChatToken) {
 			return this.sendMessage(context, modify, "You must provide the following values:\n" +
-				"1. ID of your personal token\n" +
+				"1. ID of your personal token (with admin rights or view-livechat-manager permission)\n" +
 				"2. Your personal token itself");
 		}
+
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
 
-		const response = await http.post(`${appUrl}/register`,
+		const response = await http.post(`${appUrl}/register-workspace`,
 			{
 				data: {
 					rocketChatUrl,
 					rocketChatId,
 					rocketChatToken,
 					email: context.getSender().emails[0].address,
-					type: "register",
+					type: "register-workspace",
 				},
 			});
+
 		if (response.statusCode !== 200) {
 			return this.sendMessage(context, modify,
-				`Error: ${response.data.error} ${response.data.statusCode}: ${response.data.message}`);
+				`Error: ${response.data.error}: ${response.data.message}`);
 		}
-		return this.sendMessage(context, modify, JSON.stringify(response.data.message));
+
+		return this.sendMessage(context, modify,
+			`Workspace registration successful. Your workspace command token is: ${response.data.commandToken}. ` +
+			`Please save this token in the app settings immediately. It will be required for all future commands, ` +
+			`including user registration.`);
 	}
 
-	public async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {
+	private async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {
 		const messageStructure = modify.getCreator().startMessage();
 		const sender = context.getSender();
 		const room = context.getRoom();

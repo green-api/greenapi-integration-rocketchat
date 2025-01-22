@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Workspace } from "@prisma/client";
 import { StorageProvider } from "@green-api/greenapi-integration";
 import { Instance, User } from "@prisma/client";
 
@@ -54,15 +54,22 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		});
 	}
 
+	async findWorkspace(url: string): Promise<Workspace> {
+		return this.workspace.findUnique({where: {url}});
+	}
+
+	async createWorkspace(data: { url: string, commandToken: string, webhookToken: string }): Promise<Workspace> {
+		return this.workspace.create({data});
+	}
+
 	async createUser(data: {
 		email: string,
 		rocketChatId: string,
 		rocketChatUrl: string,
 		rocketChatToken: string,
-		webhookToken: string,
-		commandToken: string
 	}) {
-		return this.user.create({data});
+		const workspace = await this.findWorkspace(data.rocketChatUrl);
+		return this.user.create({data: {...data, workspaceId: workspace.id}});
 	}
 
 	async updateUser(email: string, data: { rocketChatToken: string, rocketChatId: string }) {

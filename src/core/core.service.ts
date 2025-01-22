@@ -7,10 +7,9 @@ import {
 	GreenApiClient,
 } from "@green-api/greenapi-integration";
 import {
-	CreateInstanceCommand,
-	RegisterUserData,
+	RegisterWorkspaceCommand,
 	RocketChatCommand,
-	RocketChatWebhook, SyncAppUrlCommand,
+	RocketChatWebhook,
 	TransformedRocketChatWebhook,
 } from "../types/types";
 import { RocketChatTransformer } from "./transformer";
@@ -128,7 +127,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		return {rid: response.data.room._id};
 	}
 
-	private async setupRocketChatWebhook(data: RegisterUserData, webhookToken: string) {
+	private async setupRocketChatWebhook(data: RegisterWorkspaceCommand, webhookToken: string) {
 		try {
 			await axios.post(`${data.rocketChatUrl}/api/v1/omnichannel/integrations`, {
 				LivechatWebhookUrl: process.env.APP_URL + "/api/webhook/rocket",
@@ -149,23 +148,27 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 
 	async handleCommand(body: RocketChatCommand) {
 		switch (body.type) {
-			case "register":
+			case "register-workspace":
+				if (!body.rocketChatUrl || !body.rocketChatId || !body.rocketChatToken) {
+					throw new BadRequestException("All fields are required");
+				}
+				const commandToken = generateRandomToken(16);
+				const webhookToken = generateRandomToken(20);
+				await this.setupRocketChatWebhook(body, webhookToken);
+				await this.storage.createWorkspace({url: body.rocketChatUrl, commandToken, webhookToken});
+				return {commandToken};
+			case "register-user":
 				if (Object.values(body).some(value => !value)) {
 					throw new BadRequestException("All fields are required");
 				}
-				const webhookToken = generateRandomToken();
-				await this.setupRocketChatWebhook(body, webhookToken);
-				const user = await this.createUser(body.email, {
+				await this.createUser(body.email, {
 					email: body.email,
 					rocketChatUrl: body.rocketChatUrl,
 					rocketChatId: body.rocketChatId,
 					rocketChatToken: body.rocketChatToken,
-					commandToken: generateRandomToken(16),
-					webhookToken,
 				});
 				return {
-					message: `Registration successful. Your command token for invoking other commands: ${user.commandToken}. ` +
-						`Add it in the GREEN-API app settings.`,
+					message: "success",
 				};
 			case "update-token":
 				if (Object.values(body).some(value => !value)) {
@@ -176,7 +179,6 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					rocketChatToken: body.rocketChatToken,
 				});
 			case "create-instance":
-				body = body as CreateInstanceCommand;
 				if (Object.values(body).some(value => !value)) {
 					throw new BadRequestException("Instance ID and token are required");
 				}
@@ -207,7 +209,6 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				}
 				return this.removeInstance(BigInt(body.idInstance)).then(r => r.idInstance);
 			case "sync-app-url":
-				body = body as SyncAppUrlCommand;
 				const appUrl = body.appUrl;
 				try {
 					const userId = await this.storage.findUser(body.email).then(r => r.id);
@@ -218,7 +219,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 							idInstance: instance.idInstance,
 							apiTokenInstance: instance.apiTokenInstance,
 						});
-						return greenApiClient.setSettings({webhookUrl: appUrl.replace('rocket', 'green-api')});
+						return greenApiClient.setSettings({webhookUrl: appUrl.replace("rocket", "green-api")});
 					}));
 				} catch (error) {
 					throw new Error(`Failed to update instance settings: ${error.message}`);

@@ -8,26 +8,26 @@ export class RocketChatCommandGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
-		const command = request.params.command;
-		if (command === "register") {
+		const message = request.body as RocketChatCommand;
+
+		if (message.type === "register-workspace") {
 			return true;
 		}
 
-		const message = request.body as RocketChatCommand;
-		const agentEmail = message?.email;
-
-		if (!agentEmail) {
-			throw new UnauthorizedException("Invalid webhook format");
-		}
-		const user = await this.db.findUser(agentEmail);
-
-		if (!user) {
-			throw new UnauthorizedException("No user with such credentials");
-		} else if (user.commandToken !== message.commandToken) {
-			throw new UnauthorizedException("Invalid token");
+		const {rocketChatUrl, commandToken} = message;
+		if (!rocketChatUrl || !commandToken) {
+			throw new UnauthorizedException("Workspace URL and command token are required");
 		}
 
-		request.user = user;
+		const workspace = await this.db.findWorkspace(rocketChatUrl);
+		if (!workspace) {
+			throw new UnauthorizedException("Workspace not registered. Please use /greenapi.register-workspace first");
+		}
+
+		if (workspace.commandToken !== commandToken) {
+			throw new UnauthorizedException("Invalid workspace command token");
+		}
+
 		return true;
 	}
 }

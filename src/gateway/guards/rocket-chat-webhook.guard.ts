@@ -20,18 +20,28 @@ export class RocketChatWebhookGuard implements CanActivate {
 		}
 
 		const message = request.body as RocketChatWebhook;
-		const agentEmail = message?.agent?.email;
 
+		if (!message.messages?.[0]?.agentId) {
+			throw new HttpException({message: "Not an agent message"}, HttpStatus.OK);
+		}
+
+		const agentEmail = message?.agent?.email;
 		if (!agentEmail) {
 			throw new HttpException({message: "Invalid webhook format"}, HttpStatus.OK);
 		}
+
 		const user = await this.db.findUser(agentEmail);
-		let instance = await this.db.findInstanceByPhoneNumber(`${message.visitor.token.split(":")[1]}@c.us`, agentEmail);
 		if (!user) {
 			throw new HttpException({message: "No user with such credentials"}, HttpStatus.OK);
-		} else if (user.webhookToken !== token) {
-			throw new HttpException({message: "Invalid token"}, HttpStatus.OK);
-		} else if (!instance) {
+		}
+
+		const workspace = await this.db.findWorkspace(user.rocketChatUrl);
+		if (!workspace || workspace.webhookToken !== token) {
+			throw new HttpException({message: "Invalid webhook token"}, HttpStatus.OK);
+		}
+
+		const instance = await this.db.findInstanceByPhoneNumber(`${message.visitor.token.split(":")[1]}@c.us`, agentEmail);
+		if (!instance) {
 			throw new HttpException({message: "Instance by phone number is not found"}, HttpStatus.OK);
 		}
 
