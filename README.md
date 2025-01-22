@@ -24,7 +24,8 @@ A NestJS application that:
 
 A Rocket.Chat application that provides slash commands:
 
-- `/greenapi.register` - Register a new user
+- `/greenapi.register-workspace` - Register your Rocket.Chat workspace
+- `/greenapi.register-user` - Register a new user
 - `/greenapi.create-instance` - Create a new GREEN-API instance
 - `/greenapi.remove-instance` - Remove an existing instance
 - `/greenapi.update-token` - Update Rocket.Chat authentication tokens
@@ -168,26 +169,38 @@ For self-hosted deployments, make sure to:
 
 ## App usage
 
-### 1. Register your account in the adapter:
+### 1. Register your workspace in the adapter:
 
 ```
-/greenapi.register [rocket-chat-id] [rocket-chat-token]
+/greenapi.register-workspace [rocket-chat-id] [rocket-chat-token]
 ```
 
-- `rocket-chat-id`: Your Rocket.Chat ID
+- `rocket-chat-id`: Your Rocket.Chat ID (with admin rights or view-livechat-manager permission)
 - `rocket-chat-token`: Your Rocket.Chat personal API token
 
-In the response you will receive a command token. **You need to paste this token in the GREEN-API app settings:**
+In the response you will receive a workspace command token. **You need to paste this token in the GREEN-API app
+settings:**
 
-1. Click ⋮ on the top left of the Rocket.chat home page.
+1. Click ⋮ on the top left of the Rocket.chat home page
 2. Go to Marketplace > Private Apps > GREEN-API > Settings
 3. Find the "Command token" field
-4. Paste your token there
+4. Paste your workspace token there
 5. Save changes
 
 ![GREEN-API Command Token Settings](./assets/command-token-settings.png)
 
-### 2. Create a GREEN-API instance:
+### 2. Register users in your workspace:
+
+```
+/greenapi.register-user [rocket-chat-id] [rocket-chat-token]
+```
+
+- `rocket-chat-id`: User's Rocket.Chat ID
+- `rocket-chat-token`: User's Rocket.Chat personal API token
+
+This command requires the workspace to be registered first and the workspace command token to be set in app settings.
+
+### 3. Create a GREEN-API instance:
 
 ```
 /greenapi.create-instance [instance-id] [instance-token]
@@ -196,14 +209,18 @@ In the response you will receive a command token. **You need to paste this token
 - `instance-id`: Your GREEN-API instance ID
 - `instance-token`: Your GREEN-API instance API token
 
-3. Wait approximately 2 minutes for the settings to apply.
+### 4. Wait for settings:
 
+Wait approximately 2 minutes for the instance settings to apply.
 
-4. To test the connection, write a message to a WhatsApp number connected to your GREEN-API instance - a new chat with
-   the message will appear in Rocket.Chat.
+### 5. Test the connection:
 
+Write a message to a WhatsApp number connected to your GREEN-API instance - a new chat with
+the message will appear in Rocket.Chat.
 
-5. Start using WhatsApp in Rocket.Chat!
+### 6. Start messaging:
+
+You can now use WhatsApp in Rocket.Chat!
 
 ### Other available commands:
 
