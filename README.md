@@ -152,7 +152,25 @@ docker-compose down
 Note: The deployment configuration is provided as a reference and may need adjustments based on your specific
 environment and requirements.
 
-### Important Note for Self-Hosted Deployments
+## Important Notes
+
+### How to Get Your Rocket.Chat Credentials
+
+To obtain your `rocket-chat-id` and `rocket-chat-token`:
+
+1. Click your avatar in Rocket.Chat
+2. Go to "Personal Access Tokens" under Account settings
+3. Enter a name for your token or leave it blank and click "Add"
+4. After verification, you will be shown both your User ID and Access Token
+    - Save both values immediately as the token will only be shown once
+    - The User ID is your `rocket-chat-id`
+    - The Access Token is your `rocket-chat-token`
+
+Note: For workspace registration (`/greenapi.register-workspace`), the user must have admin rights or the
+`view-livechat-manager` permission. For regular agent registration (`/greenapi.register-user`), standard agent
+permissions are sufficient.
+
+### Self-Hosted Deployments
 
 If you're deploying the adapter on your own server, the adapter requires a public
 URL (APP_URL) that is accessible from the internet. This is necessary for:
@@ -166,6 +184,13 @@ For self-hosted deployments, make sure to:
 2. Set up a domain name or static IP
 3. Configure SSL/TLS for secure communication
 4. Set the APP_URL environment variable to your public URL
+
+### ⚠️ Workspace Registration and Omnichannel Webhook
+
+When using `/greenapi.register-workspace`, please note that this command will override any existing webhook
+configuration in your Omnichannel settings. This is because Rocket.Chat only supports one webhook endpoint for
+Omnichannel integrations. If you have any existing webhook integrations, they will be replaced with the GREEN-API
+webhook configuration.
 
 ## App usage
 
@@ -199,6 +224,8 @@ settings:**
 - `rocket-chat-token`: User's Rocket.Chat personal API token
 
 This command requires the workspace to be registered first and the workspace command token to be set in app settings.
+
+**For an agent to have an ability to answer in a WhatsApp chat, they must be registered through this command first.**
 
 ### 3. Create a GREEN-API instance:
 
