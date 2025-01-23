@@ -12,19 +12,19 @@ datasource db {
 }
 
 model Workspace {
-  id           BigInt @id @default(autoincrement()) @db.UnsignedBigInt
-  url          String @unique @db.VarChar(255)
-  commandToken String @db.VarChar(255) // For receiving commands
-  webhookToken String @db.VarChar(255) // For receiving webhooks
-  createdAt    BigInt @default(dbgenerated("(UNIX_TIMESTAMP(NOW(3)) * 1000)")) @db.UnsignedBigInt
+  id           BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  url          String     @unique @db.VarChar(255)
+  commandToken String     @db.VarChar(255) // For receiving commands
+  webhookToken String     @db.VarChar(255) // For receiving webhooks
+  createdAt    BigInt     @default(dbgenerated("(UNIX_TIMESTAMP(NOW(3)) * 1000)")) @db.UnsignedBigInt
   users        User[]
+  Instance     Instance[]
 }
 
 model User {
   id              BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
   email           String     @unique @db.VarChar(255)
   rocketChatId    String     @db.VarChar(255)
-  rocketChatUrl   String     @db.VarChar(255)
   rocketChatToken String     @db.VarChar(255) // for making rocket.chat requests
   workspace       Workspace  @relation(fields: [workspaceId], references: [id])
   workspaceId     BigInt     @db.UnsignedBigInt
@@ -47,6 +47,8 @@ model Instance {
   stateInstance    InstanceState
   userId           BigInt        @db.UnsignedBigInt
   user             User          @relation(fields: [userId], references: [id])
+  workspaceId      BigInt        @db.UnsignedBigInt
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id])
   /// [InstanceSettings]
   settings         Json?         @default("{}") // GREEN-API settings
   createdAt        BigInt        @default(dbgenerated("(UNIX_TIMESTAMP(NOW(3)) * 1000)")) @db.UnsignedBigInt

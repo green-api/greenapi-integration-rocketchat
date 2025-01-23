@@ -29,14 +29,17 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 	}
 
 	async createPlatformClient(instance: Instance): Promise<AxiosInstance> {
-		const user = await this.storage.findUserById(BigInt(instance.userId));
+		const user = await this.storage.user.findUnique({
+			where: {id: instance.userId},
+			select: {workspace: {select: {url: true}}, rocketChatId: true, rocketChatToken: true},
+		});
 		if (!user) {
 			throw new Error("User not found");
 		}
 
-		const baseUrl = user.rocketChatUrl.endsWith("/")
-			? user.rocketChatUrl.slice(0, -1)
-			: user.rocketChatUrl;
+		const baseUrl = user.workspace.url.endsWith("/")
+			? user.workspace.url.slice(0, -1)
+			: user.workspace.url;
 
 		return axios.create({
 			baseURL: `${baseUrl}/api/v1`,

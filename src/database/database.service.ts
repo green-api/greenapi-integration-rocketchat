@@ -10,6 +10,10 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 	}
 
 	async createInstance(instance: Instance, userId: bigint): Promise<Instance> {
+		const user = await this.user.findUnique({
+			where: {id: userId},
+			select: {workspaceId: true},
+		});
 		return this.instance.create({
 			data: {
 				idInstance: instance.idInstance,
@@ -17,6 +21,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 				stateInstance: instance.stateInstance,
 				settings: instance.settings || {},
 				userId,
+				workspaceId: user.workspaceId,
 			},
 		});
 	}
@@ -38,14 +43,6 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		});
 	}
 
-	async findUserById(userId: bigint) {
-		return this.user.findUnique({
-			where: {
-				id: userId,
-			},
-		});
-	}
-
 	async findUser(email: string) {
 		return this.user.findUnique({
 			where: {
@@ -56,6 +53,10 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 
 	async findWorkspace(url: string): Promise<Workspace> {
 		return this.workspace.findUnique({where: {url}});
+	}
+
+	async findWorkspaceById(workspaceId: bigint) {
+		return this.workspace.findUnique({where: {id: workspaceId}});
 	}
 
 	async createWorkspace(data: { url: string, commandToken: string, webhookToken: string }): Promise<Workspace> {
@@ -69,7 +70,14 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		rocketChatToken: string,
 	}) {
 		const workspace = await this.findWorkspace(data.rocketChatUrl);
-		return this.user.create({data: {...data, workspaceId: workspace.id}});
+		return this.user.create({
+			data: {
+				rocketChatToken: data.rocketChatToken,
+				rocketChatId: data.rocketChatId,
+				workspaceId: workspace.id,
+				email: data.email,
+			},
+		});
 	}
 
 	async updateUser(email: string, data: { rocketChatToken: string, rocketChatId: string }) {
@@ -81,7 +89,17 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		});
 	}
 
-	async findInstanceByPhoneNumber(phoneNumber: string, email: string): Promise<Instance | null> {
-		return this.instance.findFirst({where: {settings: {path: "$.wid", equals: phoneNumber}, user: {email}}});
+	async findInstanceByPhoneNumber(phoneNumber: string, workspaceId: bigint): Promise<Instance | null> {
+		const workspace = await this.workspace.findUnique({
+			where: {id: workspaceId},
+		});
+
+		if (!workspace) return null;
+		return this.instance.findFirst({
+			where: {
+				settings: {path: "$.wid", equals: phoneNumber},
+				workspaceId: workspace.id,
+			},
+		});
 	}
 }

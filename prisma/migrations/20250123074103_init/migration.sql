@@ -15,7 +15,6 @@ CREATE TABLE `User` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(255) NOT NULL,
     `rocketChatId` VARCHAR(255) NOT NULL,
-    `rocketChatUrl` VARCHAR(255) NOT NULL,
     `rocketChatToken` VARCHAR(255) NOT NULL,
     `workspaceId` BIGINT UNSIGNED NOT NULL,
     `createdAt` BIGINT UNSIGNED NOT NULL DEFAULT (UNIX_TIMESTAMP(NOW(3)) * 1000),
@@ -31,6 +30,7 @@ CREATE TABLE `Instance` (
     `apiTokenInstance` VARCHAR(255) NOT NULL,
     `stateInstance` ENUM('notAuthorized', 'authorized', 'yellowCard', 'blocked', 'starting') NOT NULL,
     `userId` BIGINT UNSIGNED NOT NULL,
+    `workspaceId` BIGINT UNSIGNED NOT NULL,
     `settings` JSON NULL,
     `createdAt` BIGINT UNSIGNED NOT NULL DEFAULT (UNIX_TIMESTAMP(NOW(3)) * 1000),
 
@@ -43,3 +43,6 @@ ALTER TABLE `User` ADD CONSTRAINT `User_workspaceId_fkey` FOREIGN KEY (`workspac
 
 -- AddForeignKey
 ALTER TABLE `Instance` ADD CONSTRAINT `Instance_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Instance` ADD CONSTRAINT `Instance_workspaceId_fkey` FOREIGN KEY (`workspaceId`) REFERENCES `Workspace`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
