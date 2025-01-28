@@ -279,7 +279,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
         			 Created: ${new Date(Number(instance.createdAt)).toLocaleString()}`,
 				).join("\n\n");
 
-				return `Found ${instances.length} instances in workspace:\n\n${formattedInstances}`;
+				return {message: `Found ${instances.length} instances in workspace:\n\n${formattedInstances}`};
 			}
 			case "list-users": {
 				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
@@ -310,7 +310,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
          			 Active Instances: ${user._count.Instance}`,
 				).join("\n\n");
 
-				return `Found ${users.length} users in workspace:\n\n${formattedUsers}`;
+				return {message: `Found ${users.length} users in workspace:\n\n${formattedUsers}`};
 			}
 			default: {
 				throw new BadRequestException("Unknown command");

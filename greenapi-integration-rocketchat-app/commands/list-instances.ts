@@ -35,8 +35,7 @@ export class ListInstancesCommand implements ISlashCommand {
 			return this.sendMessage(context, modify,
 				`Error: ${response.data.error}: ${response.data.message}`);
 		}
-
-		return this.sendMessage(context, modify, response.data);
+		return this.sendMessage(context, modify, response.data.message);
 	}
 
 	private async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {
