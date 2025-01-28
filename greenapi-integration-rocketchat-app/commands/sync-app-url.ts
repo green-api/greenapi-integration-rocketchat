@@ -18,6 +18,7 @@ export class SyncAppUrlCommand implements ISlashCommand {
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const commandToken = await read.getEnvironmentReader().getSettings().getValueById("command_token");
 		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
+		const roles = context.getSender().roles;
 
 		const response = await http.post(`${appUrl}/sync-app-url`,
 			{
@@ -27,6 +28,7 @@ export class SyncAppUrlCommand implements ISlashCommand {
 					email: context.getSender().emails[0].address,
 					type: "sync-app-url",
 					appUrl,
+					roles,
 				},
 			});
 		if (response.statusCode !== 200) {

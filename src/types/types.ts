@@ -69,6 +69,7 @@ interface BaseCommandData {
 	rocketChatId: string;
 	rocketChatUrl: string;
 	commandToken: string;
+	roles: string[];
 }
 
 export interface RegisterWorkspaceCommand {
@@ -77,10 +78,11 @@ export interface RegisterWorkspaceCommand {
 	rocketChatId: string;
 	rocketChatToken: string;
 	email: string;
+	roles: string[];
 }
 
-export interface RegisterUserCommand extends BaseCommandData {
-	type: "register-user";
+export interface RegisterAgentCommand extends BaseCommandData {
+	type: "register-agent";
 	rocketChatToken: string;
 	webhookToken: string;
 }
@@ -106,12 +108,24 @@ export interface SyncAppUrlCommand extends BaseCommandData {
 	appUrl: string;
 }
 
-export type WorkspaceCommand = RegisterWorkspaceCommand;
-export type AuthenticatedCommand =
-    | RegisterUserCommand
-    | UpdateUserCommand
-    | CreateInstanceCommand
-    | RemoveInstanceCommand
-    | SyncAppUrlCommand;
+export interface ListInstancesCommand extends BaseCommandData {
+	type: "list-instances";
+}
 
-export type RocketChatCommand = WorkspaceCommand | AuthenticatedCommand;
+export interface ListUsersCommand extends BaseCommandData {
+	type: "list-users";
+}
+
+export type AdminCommand =
+	| RegisterWorkspaceCommand
+	| ListInstancesCommand
+	| ListUsersCommand
+	| RemoveInstanceCommand
+	| SyncAppUrlCommand;
+
+export type AgentCommand =
+	| RegisterAgentCommand
+	| UpdateUserCommand
+	| CreateInstanceCommand;
+
+export type RocketChatCommand = AdminCommand | AgentCommand;

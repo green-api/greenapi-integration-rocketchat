@@ -24,6 +24,7 @@ export class RemoveInstanceCommand implements ISlashCommand {
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const commandToken = await read.getEnvironmentReader().getSettings().getValueById("command_token");
 		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
+		const roles = context.getSender().roles;
 
 		const response = await http.post(`${appUrl}/remove-instance`,
 			{
@@ -33,6 +34,7 @@ export class RemoveInstanceCommand implements ISlashCommand {
 					rocketChatUrl,
 					email: context.getSender().emails[0].address,
 					type: "remove-instance",
+					roles,
 				},
 			});
 		if (response.statusCode !== 200) {

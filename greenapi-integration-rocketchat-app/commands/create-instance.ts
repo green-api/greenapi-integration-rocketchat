@@ -25,6 +25,7 @@ export class CreateInstanceCommand implements ISlashCommand {
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const commandToken = await read.getEnvironmentReader().getSettings().getValueById("command_token");
 		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
+		const roles = context.getSender().roles;
 
 		const response = await http.post(`${appUrl}/create-instance`,
 			{
@@ -35,6 +36,7 @@ export class CreateInstanceCommand implements ISlashCommand {
 					rocketChatUrl,
 					email: context.getSender().emails[0].address,
 					type: "create-instance",
+					roles,
 				},
 			});
 		if (response.statusCode !== 200) {

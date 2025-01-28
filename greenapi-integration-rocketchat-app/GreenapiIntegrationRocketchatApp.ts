@@ -7,11 +7,13 @@ import { App } from "@rocket.chat/apps-engine/definition/App";
 import { IAppInfo } from "@rocket.chat/apps-engine/definition/metadata";
 import { SettingType } from "@rocket.chat/apps-engine/definition/settings";
 import { CreateInstanceCommand } from "./commands/create-instance";
-import { RegisterUserCommand } from "./commands/register-user";
+import { RegisterAgentCommand } from "./commands/register-agent";
 import { RemoveInstanceCommand } from "./commands/remove-instance";
 import { UpdateTokenCommand } from "./commands/update-token";
 import { SyncAppUrlCommand } from "./commands/sync-app-url";
 import { RegisterWorkspaceCommand } from "./commands/register-workspace";
+import { ListUsersCommand } from "./commands/list-users";
+import { ListInstancesCommand } from "./commands/list-instances";
 
 export class GreenapiIntegrationRocketchatApp extends App {
 	constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
@@ -37,11 +39,13 @@ export class GreenapiIntegrationRocketchatApp extends App {
 			i18nLabel: "Command token",
 			i18nDescription: "The command token for API requests. You will need to manually input here the generated token after you call the 'greenapi.register' command.",
 		});
-		await configuration.slashCommands.provideSlashCommand(new RegisterUserCommand());
+		await configuration.slashCommands.provideSlashCommand(new RegisterAgentCommand());
 		await configuration.slashCommands.provideSlashCommand(new CreateInstanceCommand());
 		await configuration.slashCommands.provideSlashCommand(new RemoveInstanceCommand());
 		await configuration.slashCommands.provideSlashCommand(new UpdateTokenCommand());
 		await configuration.slashCommands.provideSlashCommand(new SyncAppUrlCommand());
 		await configuration.slashCommands.provideSlashCommand(new RegisterWorkspaceCommand());
+		await configuration.slashCommands.provideSlashCommand(new ListUsersCommand());
+		await configuration.slashCommands.provideSlashCommand(new ListInstancesCommand());
 	}
 }

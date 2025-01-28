@@ -19,12 +19,13 @@ export class RegisterWorkspaceCommand implements ISlashCommand {
 
 		if (!rocketChatId || !rocketChatToken) {
 			return this.sendMessage(context, modify, "You must provide the following values:\n" +
-				"1. ID of your personal token (with admin rights or view-livechat-manager permission)\n" +
+				"1. ID of your personal token (with admin rights)\n" +
 				"2. Your personal token itself");
 		}
 
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
+		const roles = context.getSender().roles;
 
 		const response = await http.post(`${appUrl}/register-workspace`,
 			{
@@ -34,6 +35,7 @@ export class RegisterWorkspaceCommand implements ISlashCommand {
 					rocketChatToken,
 					email: context.getSender().emails[0].address,
 					type: "register-workspace",
+					roles,
 				},
 			});
 

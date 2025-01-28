@@ -36,7 +36,6 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		if (!user) {
 			throw new Error("User not found");
 		}
-
 		const baseUrl = user.workspace.url.endsWith("/")
 			? user.workspace.url.slice(0, -1)
 			: user.workspace.url;
@@ -151,7 +150,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 
 	async handleCommand(body: RocketChatCommand) {
 		switch (body.type) {
-			case "register-workspace":
+			case "register-workspace": {
 				if (!body.rocketChatUrl || !body.rocketChatId || !body.rocketChatToken) {
 					throw new BadRequestException("All fields are required");
 				}
@@ -160,7 +159,8 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				await this.setupRocketChatWebhook(body, webhookToken);
 				await this.storage.createWorkspace({url: body.rocketChatUrl, commandToken, webhookToken});
 				return {commandToken};
-			case "register-user":
+			}
+			case "register-agent": {
 				if (Object.values(body).some(value => !value)) {
 					throw new BadRequestException("All fields are required");
 				}
@@ -173,7 +173,8 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				return {
 					message: "success",
 				};
-			case "update-token":
+			}
+			case "update-token": {
 				if (Object.values(body).some(value => !value)) {
 					throw new BadRequestException("rocket.chat ID and rocket.chat token are required");
 				}
@@ -181,9 +182,18 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					rocketChatId: body.rocketChatId,
 					rocketChatToken: body.rocketChatToken,
 				});
-			case "create-instance":
+			}
+			case "create-instance": {
 				if (Object.values(body).some(value => !value)) {
 					throw new BadRequestException("Instance ID and token are required");
+				}
+				const existingInstance = await this.storage.getInstance(BigInt(body.idInstance));
+				if (existingInstance) {
+					throw new BadRequestException("Instance already exists");
+				}
+				const user = await this.storage.findUser(body.email);
+				if (!user) {
+					throw new BadRequestException("User not found");
 				}
 				const client = this.createGreenApiClient({
 					idInstance: body.idInstance,
@@ -196,7 +206,9 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					throw new BadRequestException(`Failed to get settings for instance ${body.idInstance}: ${error.message}`, "INTEGRATION_ERROR");
 				}
 				return this.createInstance({
-					idInstance: BigInt(body.idInstance), apiTokenInstance: body.apiTokenInstance, settings: {
+					idInstance: BigInt(body.idInstance),
+					apiTokenInstance: body.apiTokenInstance,
+					settings: {
 						webhookUrl: process.env.APP_URL + "/api/webhook/green-api",
 						webhookUrlToken: generateRandomToken(),
 						incomingWebhook: "yes",
@@ -205,31 +217,96 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 						wid: waSettings.phone ? `${waSettings.phone}@c.us` : undefined,
 					},
 					stateInstance: waSettings.stateInstance,
-				}, body.email).then(r => r.idInstance);
-			case "remove-instance":
+					userId: user.id,
+					workspaceId: user.workspaceId,
+				}).then(r => r.idInstance);
+			}
+			case "remove-instance": {
 				if (!body.idInstance) {
 					throw new BadRequestException("Instance ID is required");
 				}
+				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
+				if (!workspace) {
+					throw new BadRequestException("Workspace not found");
+				}
+				const instance = await this.storage.getInstance(BigInt(body.idInstance));
+				if (!instance || instance.workspaceId !== workspace.id) {
+					throw new BadRequestException("Instance not found");
+				}
 				return this.removeInstance(BigInt(body.idInstance)).then(r => r.idInstance);
-			case "sync-app-url":
-				const appUrl = body.appUrl;
+			}
+			case "sync-app-url": {
 				try {
-					const userId = await this.storage.findUser(body.email).then(r => r.id);
-					const instances = await this.storage.getInstances(userId);
+					const workspaceId = await this.storage.findWorkspace(body.rocketChatUrl).then(r => r.id);
+					const instances = await this.storage.getInstances(workspaceId);
 
 					await Promise.all(instances.map(instance => {
 						const greenApiClient = new GreenApiClient({
 							idInstance: instance.idInstance,
 							apiTokenInstance: instance.apiTokenInstance,
 						});
-						return greenApiClient.setSettings({webhookUrl: appUrl.replace("rocket", "green-api")});
+						return greenApiClient.setSettings({webhookUrl: body.appUrl.replace("rocket", "green-api")});
 					}));
 				} catch (error) {
 					throw new Error(`Failed to update instance settings: ${error.message}`);
 				}
 				break;
-			default:
+			}
+			case "list-instances": {
+				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
+				if (!workspace) {
+					throw new BadRequestException("Workspace not found");
+				}
+
+				const instances = await this.storage.getInstances(workspace.id);
+
+				if (instances.length === 0) {
+					return "No instances found in this workspace.";
+				}
+
+				const formattedInstances = instances.map(instance =>
+					`Instance ID: ${instance.idInstance}
+       				 Status: ${instance.stateInstance}
+        			 User: ${instance.user.email}
+        			 Created: ${new Date(Number(instance.createdAt)).toLocaleString()}`,
+				).join("\n\n");
+
+				return `Found ${instances.length} instances in workspace:\n\n${formattedInstances}`;
+			}
+			case "list-users": {
+				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
+				if (!workspace) {
+					throw new BadRequestException("Workspace not found");
+				}
+
+				const users = await this.storage.user.findMany({
+					where: {workspaceId: workspace.id},
+					select: {
+						email: true,
+						rocketChatId: true,
+						createdAt: true,
+						_count: {
+							select: {Instance: true},
+						},
+					},
+				});
+
+				if (users.length === 0) {
+					return "No users found in this workspace.";
+				}
+
+				const formattedUsers = users.map(user =>
+					`Email: ${user.email}
+         			 RocketChat ID: ${user.rocketChatId}
+         			 Created: ${new Date(Number(user.createdAt)).toLocaleString()}
+         			 Active Instances: ${user._count.Instance}`,
+				).join("\n\n");
+
+				return `Found ${users.length} users in workspace:\n\n${formattedUsers}`;
+			}
+			default: {
 				throw new BadRequestException("Unknown command");
+			}
 		}
 	}
 }

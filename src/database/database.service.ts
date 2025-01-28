@@ -9,25 +9,24 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		await this.$connect();
 	}
 
-	async createInstance(instance: Instance, userId: bigint): Promise<Instance> {
-		const user = await this.user.findUnique({
-			where: {id: userId},
-			select: {workspaceId: true},
-		});
+	async createInstance(instance: Instance): Promise<Instance> {
 		return this.instance.create({
 			data: {
 				idInstance: instance.idInstance,
 				apiTokenInstance: instance.apiTokenInstance,
 				stateInstance: instance.stateInstance,
 				settings: instance.settings || {},
-				userId,
-				workspaceId: user.workspaceId,
+				userId: instance.userId,
+				workspaceId: instance.workspaceId,
 			},
 		});
 	}
 
-	async getInstances(userId: bigint): Promise<Instance[]> {
-		return this.instance.findMany({where: {userId}});
+	async getInstances(workspaceId: bigint): Promise<Partial<Instance & { user: { email: string } }>[]> {
+		return this.instance.findMany({
+			where: {workspaceId},
+			select: {idInstance: true, user: {select: {email: true}}, stateInstance: true, createdAt: true},
+		});
 	}
 
 	async getInstance(idInstance: number | bigint): Promise<Instance | null> {
