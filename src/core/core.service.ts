@@ -52,8 +52,16 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 	async sendToPlatform(message: TransformedRocketChatWebhook, instance: Instance): Promise<void> {
 		try {
 			const client = await this.createPlatformClient(instance);
+			const user = await this.storage.user.findUnique({
+				where: {id: instance.userId},
+				select: {rocketChatId: true},
+			});
+
+			if (!user) {
+				throw new Error("User not found");
+			}
 			const visitor = await this.createVisitor(message.token, message.name, client, instance.settings.wid.split("@")[0]);
-			const room = await this.createRoom(visitor.token, client);
+			const room = await this.createRoom(visitor.token, client, user.rocketChatId);
 			if (message.file) {
 				const fileResponse = await axios.get(message.file.url, {responseType: "arraybuffer"});
 				const blob = new Blob([fileResponse.data], {type: message.file.mimeType});
@@ -122,9 +130,9 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		return response.data.visitor;
 	}
 
-	private async createRoom(visitorToken: string, client: AxiosInstance) {
+	private async createRoom(visitorToken: string, client: AxiosInstance, rocketChatId: string) {
 		const response = await client.get("/livechat/room", {
-			params: {token: visitorToken},
+			params: {token: visitorToken, agentId: rocketChatId},
 		});
 		return {rid: response.data.room._id};
 	}
