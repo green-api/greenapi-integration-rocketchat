@@ -24,12 +24,22 @@ A NestJS application that:
 
 A Rocket.Chat application that provides slash commands:
 
+For administrators:
+
 - `/greenapi.register-workspace` - Register your Rocket.Chat workspace
-- `/greenapi.register-user` - Register a new user
-- `/greenapi.create-instance` - Create a new GREEN-API instance
-- `/greenapi.remove-instance` - Remove an existing instance
-- `/greenapi.update-token` - Update Rocket.Chat authentication tokens
+- `/greenapi.list-instances` - List all instances in the workspace
+- `/greenapi.list-users` - List all registered users in the workspace
+- `/greenapi.remove-instance` - Remove any instance from the workspace
 - `/greenapi.sync-app-url` - Synchronize webhook URLs of all instances with the current app URL
+
+For livechat agents:
+
+- `/greenapi.register-agent` - Register yourself as a livechat agent
+- `/greenapi.create-instance` - Create a new GREEN-API instance
+
+For both roles:
+
+- `/greenapi.update-token` - Update Rocket.Chat authentication tokens
 
 ## Prerequisites
 
@@ -154,6 +164,23 @@ environment and requirements.
 
 ## Important Notes
 
+### User Roles and Permissions
+
+The integration uses Rocket.Chat's role system:
+
+1. **Administrator Role**
+    - Can register workspaces
+    - Can view all instances and users in the workspace
+    - Can remove any instance
+    - Can synchronize app URLs
+    - No need to register as an agent to use admin commands
+
+2. **Livechat Agent Role**
+    - Must register themselves first using `/greenapi.register-agent`
+    - Can create their own instances
+
+Both roles can update their authentication tokens using `/greenapi.update-token`.
+
 ### How to Get Your Rocket.Chat Credentials
 
 To obtain your `rocket-chat-id` and `rocket-chat-token`:
@@ -166,9 +193,8 @@ To obtain your `rocket-chat-id` and `rocket-chat-token`:
     - The User ID is your `rocket-chat-id`
     - The Access Token is your `rocket-chat-token`
 
-Note: For workspace registration (`/greenapi.register-workspace`), the user must have admin rights or the
-`view-livechat-manager` permission. For regular agent registration (`/greenapi.register-user`), standard agent
-permissions are sufficient.
+Note: For workspace registration (`/greenapi.register-workspace`), the user must have admin role. For agent
+registration (`/greenapi.register-agent`), the livechat-agent role is required.
 
 ### Self-Hosted Deployments
 
@@ -200,7 +226,7 @@ webhook configuration.
 /greenapi.register-workspace [rocket-chat-id] [rocket-chat-token]
 ```
 
-- `rocket-chat-id`: Your Rocket.Chat ID (with admin rights or view-livechat-manager permission)
+- `rocket-chat-id`: Your Rocket.Chat ID (requires admin role)
 - `rocket-chat-token`: Your Rocket.Chat personal API token
 
 In the response you will receive a workspace command token. **You need to paste this token in the GREEN-API app
@@ -217,13 +243,17 @@ settings:**
 ### 2. Register users in your workspace:
 
 ```
-/greenapi.register-user [rocket-chat-id] [rocket-chat-token]
+/greenapi.register-agent [rocket-chat-id] [rocket-chat-token]
 ```
 
 - `rocket-chat-id`: User's Rocket.Chat ID
 - `rocket-chat-token`: User's Rocket.Chat personal API token
 
-This command requires the workspace to be registered first and the workspace command token to be set in app settings.
+This command requires:
+
+- The workspace to be registered first
+- The workspace command token to be set in app settings
+- The user to have the livechat-agent role
 
 **For an agent to have an ability to answer in a WhatsApp chat, they must be registered through this command first.**
 
@@ -251,14 +281,29 @@ You can now use WhatsApp in Rocket.Chat!
 
 ### Other available commands:
 
+For agents:
+
 ```
-// remove the created instance (only in the adapter database)
+# Create a new instance
+/greenapi.create-instance [instance-id] [instance-token]
+
+# Remove your own instance
+/greenapi.remove-instance [instance-id]
+```
+
+For admins:
+
+```
+# List all instances in workspace
+/greenapi.list-instances
+
+# List all registered agents
+/greenapi.list-users
+
+# Remove any instance
 /greenapi.remove-instance [instance-id]
 
-// update your rocket.chat token (only in the adapter database)
-/greenapi.update-token [rocket-chat-id] [rocket-chat-token]
-
-// synchronize webhook URLs of all instances with the current app URL
+# Sync app URL for all instances
 /greenapi.sync-app-url
 ```
 
