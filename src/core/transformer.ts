@@ -45,7 +45,6 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 				}
 				case "contactMessage": {
 					const contact = webhook.messageData.contactMessageData;
-					console.log(contact.vcard);
 					const phone = extractPhoneNumberFromVCard(contact.vcard);
 					const contactText = [
 						"👤 Contact shared:",
@@ -56,6 +55,25 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 					return {
 						...baseMessage,
 						msg: contactText,
+					};
+				}
+				case "contactsArrayMessage": {
+					const contacts = webhook.messageData.messageData.contacts;
+					const contactsText = [
+						"👥 Multiple contacts shared:",
+						"",
+						...contacts.map(contact => {
+							const phone = extractPhoneNumberFromVCard(contact.vcard);
+							return [
+								`👤 ${contact.displayName}`,
+								phone && `📱 ${phone}`,
+							].filter(Boolean).join("\n");
+						}),
+					].join("\n");
+
+					return {
+						...baseMessage,
+						msg: contactsText,
 					};
 				}
 				case "pollMessage": {
