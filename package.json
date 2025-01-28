@@ -1,6 +1,6 @@
 {
   "name": "greenapi-integration-rocketchat",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "GREEN-API Integration with Rocket.chat",
   "author": "GREEN-API team",
   "private": false,
