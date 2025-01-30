@@ -43,7 +43,7 @@ export class UpdateTokenCommand implements ISlashCommand {
 			return this.sendMessage(context, modify,
 				`Error: ${response.data.error}: ${response.data.message}`);
 		}
-		return this.sendMessage(context, modify, `Successfully updated rocket.chat token`);
+		return this.sendMessage(context, modify, response.data.message);
 	}
 
 	public async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {

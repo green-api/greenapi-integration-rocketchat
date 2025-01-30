@@ -22,10 +22,18 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, Stora
 		});
 	}
 
-	async getInstances(workspaceId: bigint): Promise<Partial<Instance & { user: { email: string } }>[]> {
+	async getInstances(workspaceId: bigint, token: boolean = false): Promise<Partial<Instance & {
+		user: { email: string }
+	}>[]> {
 		return this.instance.findMany({
 			where: {workspaceId},
-			select: {idInstance: true, user: {select: {email: true}}, stateInstance: true, createdAt: true},
+			select: {
+				idInstance: true,
+				user: {select: {email: true}},
+				stateInstance: true,
+				createdAt: true,
+				apiTokenInstance: token,
+			},
 		});
 	}
 

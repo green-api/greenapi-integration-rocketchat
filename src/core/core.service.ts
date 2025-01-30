@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
 import {
 	BaseAdapter,
 	generateRandomToken,
@@ -19,8 +19,6 @@ import { Instance } from "@prisma/client";
 
 @Injectable()
 export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocketChatWebhook> {
-	private readonly logger = new Logger(CoreService.name);
-
 	constructor(
 		protected readonly storage: DatabaseService,
 		protected readonly transformer: RocketChatTransformer,
@@ -50,6 +48,10 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 	}
 
 	async sendToPlatform(message: TransformedRocketChatWebhook, instance: Instance): Promise<void> {
+		this.gaLogger.info("Sending a message to Rocket.chat from GREEN-API", {
+			transformedWebhook: message,
+			idInstance: instance.idInstance,
+		});
 		try {
 			const client = await this.createPlatformClient(instance);
 			const user = await this.storage.user.findUnique({
@@ -85,17 +87,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				});
 			}
 		} catch (error) {
-			if (error.response) {
-				this.logger.error("RocketChat API Error Response:", {
-					status: error.response.status,
-					data: error.response.data,
-				});
-			} else if (error.request) {
-				this.logger.error("RocketChat API No Response:", error.request);
-			} else {
-				this.logger.error("RocketChat API Error:", error.message);
-			}
-
+			this.gaLogger.logErrorResponse(error, "sendToPlatform");
 			const errorMessage = error.response?.data?.error || error.message || "Failed to send message to RocketChat";
 			throw new InternalServerErrorException(errorMessage);
 		}
@@ -127,6 +119,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				username: `greenapi:${token}`,
 			},
 		});
+		this.gaLogger.info(`Created visitor greenapi:${token}`, {visitor: response.data.visitor});
 		return response.data.visitor;
 	}
 
@@ -134,6 +127,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		const response = await client.get("/livechat/room", {
 			params: {token: visitorToken, agentId: rocketChatId},
 		});
+		this.gaLogger.info("Created or fetched a room", {roomData: response.data});
 		return {rid: response.data.room._id};
 	}
 
@@ -151,170 +145,226 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				},
 			});
 		} catch (error) {
-			this.logger.error(`Error when trying to set a rocket.chat webhook: ${error.message}`, {error: error.response.data});
+			this.gaLogger.logErrorResponse(error, "setupRocketChatWebhook");
 			throw new BadRequestException("Incorrect data provided");
 		}
 	}
 
 	async handleCommand(body: RocketChatCommand) {
-		switch (body.type) {
-			case "register-workspace": {
-				if (!body.rocketChatUrl || !body.rocketChatId || !body.rocketChatToken) {
-					throw new BadRequestException("All fields are required");
+		try {
+			switch (body.type) {
+				case "register-workspace": {
+					if (!body.rocketChatUrl || !body.rocketChatId || !body.rocketChatToken) {
+						throw new BadRequestException("All fields are required");
+					}
+					this.gaLogger.info("Registering a Rocket.chat workspace", {
+						adminEmail: body.email,
+						adminRocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						roles: body.roles,
+					});
+					const commandToken = generateRandomToken(16);
+					const webhookToken = generateRandomToken(20);
+					await this.setupRocketChatWebhook(body, webhookToken);
+					await this.storage.createWorkspace({url: body.rocketChatUrl, commandToken, webhookToken});
+					return {commandToken};
 				}
-				const commandToken = generateRandomToken(16);
-				const webhookToken = generateRandomToken(20);
-				await this.setupRocketChatWebhook(body, webhookToken);
-				await this.storage.createWorkspace({url: body.rocketChatUrl, commandToken, webhookToken});
-				return {commandToken};
-			}
-			case "register-agent": {
-				if (Object.values(body).some(value => !value)) {
-					throw new BadRequestException("All fields are required");
+				case "register-agent": {
+					if (Object.values(body).some(value => !value)) {
+						throw new BadRequestException("All fields are required");
+					}
+					this.gaLogger.info("Registering a Rocket.chat agent", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+					});
+					await this.createUser(body.email, {
+						email: body.email,
+						rocketChatUrl: body.rocketChatUrl,
+						rocketChatId: body.rocketChatId,
+						rocketChatToken: body.rocketChatToken,
+					});
+					return {
+						message: "success",
+					};
 				}
-				await this.createUser(body.email, {
-					email: body.email,
-					rocketChatUrl: body.rocketChatUrl,
-					rocketChatId: body.rocketChatId,
-					rocketChatToken: body.rocketChatToken,
-				});
-				return {
-					message: "success",
-				};
-			}
-			case "update-token": {
-				if (Object.values(body).some(value => !value)) {
-					throw new BadRequestException("rocket.chat ID and rocket.chat token are required");
+				case "update-token": {
+					if (Object.values(body).some(value => !value)) {
+						throw new BadRequestException("rocket.chat ID and rocket.chat token are required");
+					}
+					this.gaLogger.info("Registering a Rocket.chat agent", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						roles: body.roles,
+					});
+					await this.updateUser(body.email, {
+						rocketChatId: body.rocketChatId,
+						rocketChatToken: body.rocketChatToken,
+					});
+					return {message: "Token updated successfully"};
 				}
-				return this.updateUser(body.email, {
-					rocketChatId: body.rocketChatId,
-					rocketChatToken: body.rocketChatToken,
-				});
-			}
-			case "create-instance": {
-				if (Object.values(body).some(value => !value)) {
-					throw new BadRequestException("Instance ID and token are required");
+				case "create-instance": {
+					if (Object.values(body).some(value => !value)) {
+						throw new BadRequestException("Instance ID and token are required");
+					}
+					this.gaLogger.info("Creating a GREEN-API instance for a Rocket.chat agent", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						idInstance: body.idInstance,
+						roles: body.roles,
+					});
+					const existingInstance = await this.storage.getInstance(BigInt(body.idInstance));
+					if (existingInstance) {
+						throw new BadRequestException("Instance already exists");
+					}
+					const user = await this.storage.findUser(body.email);
+					if (!user) {
+						throw new BadRequestException("User not found");
+					}
+					const client = this.createGreenApiClient({
+						idInstance: body.idInstance,
+						apiTokenInstance: body.apiTokenInstance,
+					});
+					let waSettings: WaSettings;
+					try {
+						waSettings = await client.getWaSettings();
+					} catch (error: any) {
+						throw new BadRequestException(`Failed to get settings for instance ${body.idInstance}: ${error.message}`, "INTEGRATION_ERROR");
+					}
+					return this.createInstance({
+						idInstance: BigInt(body.idInstance),
+						apiTokenInstance: body.apiTokenInstance,
+						settings: {
+							webhookUrl: process.env.APP_URL + "/api/webhook/green-api",
+							webhookUrlToken: generateRandomToken(),
+							incomingWebhook: "yes",
+							pollMessageWebhook: "yes",
+							stateWebhook: "yes",
+							wid: waSettings.phone ? `${waSettings.phone}@c.us` : undefined,
+						},
+						stateInstance: waSettings.stateInstance,
+						userId: user.id,
+						workspaceId: user.workspaceId,
+					}).then(r => r.idInstance);
 				}
-				const existingInstance = await this.storage.getInstance(BigInt(body.idInstance));
-				if (existingInstance) {
-					throw new BadRequestException("Instance already exists");
+				case "remove-instance": {
+					if (!body.idInstance) {
+						throw new BadRequestException("Instance ID is required");
+					}
+					this.gaLogger.info("Removing a GREEN-API instance from a Rocket.chat agent", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						idInstance: body.idInstance,
+						roles: body.roles,
+					});
+					const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
+					if (!workspace) {
+						throw new BadRequestException("Workspace not found");
+					}
+					const instance = await this.storage.getInstance(BigInt(body.idInstance));
+					if (!instance || instance.workspaceId !== workspace.id) {
+						throw new BadRequestException("Instance not found");
+					}
+					return this.removeInstance(BigInt(body.idInstance)).then(r => r.idInstance);
 				}
-				const user = await this.storage.findUser(body.email);
-				if (!user) {
-					throw new BadRequestException("User not found");
-				}
-				const client = this.createGreenApiClient({
-					idInstance: body.idInstance,
-					apiTokenInstance: body.apiTokenInstance,
-				});
-				let waSettings: WaSettings;
-				try {
-					waSettings = await client.getWaSettings();
-				} catch (error: any) {
-					throw new BadRequestException(`Failed to get settings for instance ${body.idInstance}: ${error.message}`, "INTEGRATION_ERROR");
-				}
-				return this.createInstance({
-					idInstance: BigInt(body.idInstance),
-					apiTokenInstance: body.apiTokenInstance,
-					settings: {
-						webhookUrl: process.env.APP_URL + "/api/webhook/green-api",
-						webhookUrlToken: generateRandomToken(),
-						incomingWebhook: "yes",
-						pollMessageWebhook: "yes",
-						stateWebhook: "yes",
-						wid: waSettings.phone ? `${waSettings.phone}@c.us` : undefined,
-					},
-					stateInstance: waSettings.stateInstance,
-					userId: user.id,
-					workspaceId: user.workspaceId,
-				}).then(r => r.idInstance);
-			}
-			case "remove-instance": {
-				if (!body.idInstance) {
-					throw new BadRequestException("Instance ID is required");
-				}
-				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
-				if (!workspace) {
-					throw new BadRequestException("Workspace not found");
-				}
-				const instance = await this.storage.getInstance(BigInt(body.idInstance));
-				if (!instance || instance.workspaceId !== workspace.id) {
-					throw new BadRequestException("Instance not found");
-				}
-				return this.removeInstance(BigInt(body.idInstance)).then(r => r.idInstance);
-			}
-			case "sync-app-url": {
-				try {
-					const workspaceId = await this.storage.findWorkspace(body.rocketChatUrl).then(r => r.id);
-					const instances = await this.storage.getInstances(workspaceId);
-
-					await Promise.all(instances.map(instance => {
-						const greenApiClient = new GreenApiClient({
-							idInstance: instance.idInstance,
-							apiTokenInstance: instance.apiTokenInstance,
+				case "sync-app-url": {
+					try {
+						this.gaLogger.info("Synchonizing app url", {
+							email: body.email,
+							rocketChatId: body.rocketChatId,
+							url: body.rocketChatUrl,
+							appUrl: body.appUrl,
+							roles: body.roles,
 						});
-						return greenApiClient.setSettings({webhookUrl: body.appUrl.replace("rocket", "green-api")});
-					}));
-				} catch (error) {
-					throw new Error(`Failed to update instance settings: ${error.message}`);
-				}
-				break;
-			}
-			case "list-instances": {
-				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
-				if (!workspace) {
-					throw new BadRequestException("Workspace not found");
-				}
+						const workspaceId = await this.storage.findWorkspace(body.rocketChatUrl).then(r => r.id);
+						const instances = await this.storage.getInstances(workspaceId, true);
 
-				const instances = await this.storage.getInstances(workspace.id);
-
-				if (instances.length === 0) {
-					return "No instances found in this workspace.";
+						await Promise.all(instances.map(instance => {
+							const greenApiClient = new GreenApiClient({
+								idInstance: instance.idInstance,
+								apiTokenInstance: instance.apiTokenInstance,
+							});
+							return greenApiClient.setSettings({webhookUrl: body.appUrl.replace("rocket", "green-api")});
+						}));
+					} catch (error) {
+						throw new Error(`Failed to update instance settings: ${error.message}`);
+					}
+					break;
 				}
+				case "list-instances": {
+					this.gaLogger.info("Listing instances", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						roles: body.roles,
+					});
+					const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
+					if (!workspace) {
+						throw new BadRequestException("Workspace not found");
+					}
 
-				const formattedInstances = instances.map(instance =>
-					`Instance ID: ${instance.idInstance}
+					const instances = await this.storage.getInstances(workspace.id);
+
+					if (instances.length === 0) {
+						return {message: "No instances found in this workspace."};
+					}
+
+					const formattedInstances = instances.map(instance =>
+						`Instance ID: ${instance.idInstance}
        				 Status: ${instance.stateInstance}
         			 User: ${instance.user.email}
         			 Created: ${new Date(Number(instance.createdAt)).toLocaleString()}`,
-				).join("\n\n");
+					).join("\n\n");
 
-				return {message: `Found ${instances.length} instances in workspace:\n\n${formattedInstances}`};
-			}
-			case "list-users": {
-				const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
-				if (!workspace) {
-					throw new BadRequestException("Workspace not found");
+					return {message: `Found ${instances.length} instances in workspace:\n\n${formattedInstances}`};
 				}
+				case "list-users": {
+					this.gaLogger.info("Listing users", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						roles: body.roles,
+					});
+					const workspace = await this.storage.findWorkspace(body.rocketChatUrl);
+					if (!workspace) {
+						throw new BadRequestException("Workspace not found");
+					}
 
-				const users = await this.storage.user.findMany({
-					where: {workspaceId: workspace.id},
-					select: {
-						email: true,
-						rocketChatId: true,
-						createdAt: true,
-						_count: {
-							select: {Instance: true},
+					const users = await this.storage.user.findMany({
+						where: {workspaceId: workspace.id},
+						select: {
+							email: true,
+							rocketChatId: true,
+							createdAt: true,
+							_count: {
+								select: {Instance: true},
+							},
 						},
-					},
-				});
+					});
 
-				if (users.length === 0) {
-					return "No users found in this workspace.";
-				}
+					if (users.length === 0) {
+						return {message: "No users found in this workspace."};
+					}
 
-				const formattedUsers = users.map(user =>
-					`Email: ${user.email}
+					const formattedUsers = users.map(user =>
+						`Email: ${user.email}
          			 RocketChat ID: ${user.rocketChatId}
          			 Created: ${new Date(Number(user.createdAt)).toLocaleString()}
          			 Active Instances: ${user._count.Instance}`,
-				).join("\n\n");
+					).join("\n\n");
 
-				return {message: `Found ${users.length} users in workspace:\n\n${formattedUsers}`};
+					return {message: `Found ${users.length} users in workspace:\n\n${formattedUsers}`};
+				}
+				default: {
+					throw new BadRequestException("Unknown command");
+				}
 			}
-			default: {
-				throw new BadRequestException("Unknown command");
-			}
+		} catch (error) {
+			this.gaLogger.logErrorResponse(error, `handleCommand:${body.type}`);
+			throw error;
 		}
 	}
 }
