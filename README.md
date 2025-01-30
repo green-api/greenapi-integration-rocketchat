@@ -29,17 +29,17 @@ For administrators:
 - `/greenapi.register-workspace` - Register your Rocket.Chat workspace
 - `/greenapi.list-instances` - List all instances in the workspace
 - `/greenapi.list-users` - List all registered users in the workspace
-- `/greenapi.remove-instance` - Remove any instance from the workspace
 - `/greenapi.sync-app-url` - Synchronize webhook URLs of all instances with the current app URL
 
 For livechat agents:
 
 - `/greenapi.register-agent` - Register yourself as a livechat agent
 - `/greenapi.create-instance` - Create a new GREEN-API instance
+- `/greenapi.update-token` - Update Rocket.Chat authentication token
 
 For both roles:
 
-- `/greenapi.update-token` - Update Rocket.Chat authentication tokens
+- `/greenapi.remove-instance` - Admins can remove any instances, agents can only remove their own instances
 
 ## Prerequisites
 
@@ -178,8 +178,8 @@ The integration uses Rocket.Chat's role system:
 2. **Livechat Agent Role**
     - Must register themselves first using `/greenapi.register-agent`
     - Can create their own instances
-
-Both roles can update their authentication tokens using `/greenapi.update-token`.
+    - Can update their authentication token
+    - Can remove only their instances
 
 ### How to Get Your Rocket.Chat Credentials
 
@@ -211,6 +211,21 @@ For self-hosted deployments, make sure to:
 3. Configure SSL/TLS for secure communication
 4. Set the APP_URL environment variable to your public URL
 
+### Setting Up Livechat Agents in Rocket.Chat
+
+Before registering as an agent in this integration, users need to be set up as livechat agents in Rocket.Chat:
+
+1. Click ⋮ (three vertical dots) in the top left corner of the Rocket.Chat home page
+2. Go to Omnichannel
+3. Navigate to Agents section
+4. Search for the user by their username you want to make an agent
+5. Select the user and click "Add agent"
+
+Only after a user is set up as a livechat agent in Rocket.Chat can they register as an agent in this integration using
+the `/greenapi.register-agent` command. An agent will only receive incoming chats if they are available. If they are
+not available, the chat will go to the next available agent. If there are no available agents, the chat will be in the
+"Queued" status and will need to be manually taken.
+
 ### ⚠️ Workspace Registration and Omnichannel Webhook
 
 When using `/greenapi.register-workspace`, please note that this command will override any existing webhook
@@ -220,25 +235,14 @@ webhook configuration.
 
 ## App usage
 
-### 1. Register your workspace in the adapter:
+### 1. Register your workspace in the adapter (requires admin role):
 
 ```
 /greenapi.register-workspace [rocket-chat-id] [rocket-chat-token]
 ```
 
-- `rocket-chat-id`: Your Rocket.Chat ID (requires admin role)
+- `rocket-chat-id`: Your Rocket.Chat ID
 - `rocket-chat-token`: Your Rocket.Chat personal API token
-
-In the response you will receive a workspace command token. **You need to paste this token in the GREEN-API app
-settings:**
-
-1. Click ⋮ on the top left of the Rocket.chat home page
-2. Go to Marketplace > Private Apps > GREEN-API > Settings
-3. Find the "Command token" field
-4. Paste your workspace token there
-5. Save changes
-
-![GREEN-API Command Token Settings](./assets/command-token-settings.png)
 
 ### 2. Register users in your workspace:
 
@@ -252,7 +256,6 @@ settings:**
 This command requires:
 
 - The workspace to be registered first
-- The workspace command token to be set in app settings
 - The user to have the livechat-agent role
 
 **For an agent to have an ability to answer in a WhatsApp chat, they must be registered through this command first.**
@@ -289,6 +292,9 @@ For agents:
 
 # Remove your own instance
 /greenapi.remove-instance [instance-id]
+
+# Update your authentication token
+/greenapi.update-token [rocket-chat-id] [new-rocket-chat-token]
 ```
 
 For admins:
