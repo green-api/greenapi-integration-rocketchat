@@ -310,12 +310,11 @@ For admins:
 /greenapi.remove-instance [instance-id]
 
 # Sync app URL for all instances
-/greenapi.sync-app-url
+/greenapi.sync-app-url [new-app-url]
 ```
 
 The sync-app-url command is particularly useful when you've changed your adapter's URL or moved it to a different
-domain. It automatically updates the webhook URL settings for all your registered GREEN-API instances to match the
-current app URL defined in your Rocket.Chat GREEN-API app settings.
+domain. It automatically updates the webhook URL settings for all your registered GREEN-API instances.
 
 ## License
 
