@@ -10,15 +10,14 @@ export class RocketChatCommandGuard implements CanActivate {
 		"register-workspace",
 		"list-instances",
 		"list-users",
-		"remove-instance",
 		"sync-app-url",
-		"update-token",
 	];
 
 	private readonly AGENT_COMMANDS = [
 		"register-agent",
 		"create-instance",
 		"update-token",
+		"remove-instance",
 	];
 
 	private async validateCommand(roles: string[], email: string, message: RocketChatCommand): Promise<boolean> {
@@ -72,6 +71,25 @@ export class RocketChatCommandGuard implements CanActivate {
 					throw new UnauthorizedException(
 						"You need to register as an agent first using /greenapi.register-agent",
 					);
+				}
+
+				if (message.type === "remove-instance") {
+					const instance = await this.db.getInstance(BigInt(message.idInstance));
+					if (!instance) {
+						throw new UnauthorizedException("Instance not found");
+					}
+
+					if (!roles.includes("admin")) {
+						const instanceUser = await this.db.user.findUnique({
+							where: {id: instance.userId},
+						});
+
+						if (instanceUser?.email !== email) {
+							throw new UnauthorizedException(
+								"You can only remove instances that belong to you",
+							);
+						}
+					}
 				}
 			}
 			return true;
