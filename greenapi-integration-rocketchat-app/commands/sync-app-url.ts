@@ -1,4 +1,5 @@
 import {
+	IEnvironmentWrite,
 	IHttp,
 	IModify,
 	IRead,
@@ -14,13 +15,20 @@ export class SyncAppUrlCommand implements ISlashCommand {
 	public i18nDescription = "sync-app-url-desc";
 	public providesPreview = false;
 
+	constructor(private readonly envWriter: IEnvironmentWrite) {}
+
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {
-		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
+		const [appUrl] = context.getArguments();
+		if (!appUrl) {
+			return this.sendMessage(context, modify, "You must provide the following values:\n" +
+				"1. Your new APP_URL");
+		}
+		const oldAppUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const commandToken = await read.getEnvironmentReader().getSettings().getValueById("command_token");
 		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
 		const roles = context.getSender().roles;
 
-		const response = await http.post(`${appUrl}/sync-app-url`,
+		const response = await http.post(`${oldAppUrl}/sync-app-url`,
 			{
 				data: {
 					commandToken,
@@ -35,6 +43,8 @@ export class SyncAppUrlCommand implements ISlashCommand {
 			return this.sendMessage(context, modify,
 				`Error: ${response.data.error}: ${response.data.message}`);
 		}
+		await this.envWriter.getSettings().updateValue("app_url", appUrl);
+
 		return this.sendMessage(context, modify, "Successfully synchronized webhook urls of all instances with the new APP_URL");
 	}
 
