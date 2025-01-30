@@ -11,7 +11,7 @@ import {
 export class ListInstancesCommand implements ISlashCommand {
 	public command = "greenapi.list-instances";
 	public i18nParamsExample = "";
-	public i18nDescription = "";
+	public i18nDescription = "list-instances-desc";
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {

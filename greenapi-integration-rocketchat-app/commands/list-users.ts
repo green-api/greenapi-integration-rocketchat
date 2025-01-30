@@ -11,7 +11,7 @@ import {
 export class ListUsersCommand implements ISlashCommand {
 	public command = "greenapi.list-users";
 	public i18nParamsExample = "";
-	public i18nDescription = "";
+	public i18nDescription = "list-users-desc";
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {

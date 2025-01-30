@@ -10,8 +10,8 @@ import {
 
 export class CreateInstanceCommand implements ISlashCommand {
 	public command = "greenapi.create-instance";
-	public i18nParamsExample = "";
-	public i18nDescription = "";
+	public i18nParamsExample = "create-instance-param";
+	public i18nDescription = "create-instance-desc";
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {

@@ -10,8 +10,8 @@ import {
 
 export class UpdateTokenCommand implements ISlashCommand {
 	public command = "greenapi.update-token";
-	public i18nParamsExample = "";
-	public i18nDescription = "";
+	public i18nParamsExample = "update-token-param";
+	public i18nDescription = "update-token-desc";
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {

@@ -10,8 +10,8 @@ import {
 
 export class RemoveInstanceCommand implements ISlashCommand {
 	public command = "greenapi.remove-instance";
-	public i18nParamsExample = "";
-	public i18nDescription = "";
+	public i18nParamsExample = "remove-instance-param";
+	public i18nDescription = "remove-instance-desc";
 	public providesPreview = false;
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {

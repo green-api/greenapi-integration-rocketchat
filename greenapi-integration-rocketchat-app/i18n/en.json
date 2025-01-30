@@ -1,0 +1,15 @@
+{
+  "register-workspace-desc": "Register a Rocket.chat workspace",
+  "register-workspace-param": "#rocketChatId #rocketChatToken",
+  "create-instance-desc": "Create a new GREEN-API instance",
+  "create-instance-param": "#idInstance #apiTokenInstance",
+  "list-instances-desc": "List all instances in the workspace",
+  "list-users-desc": "List all users in the workspace",
+  "register-agent-desc": "Register yourself as a livechat agent",
+  "register-agent-param": "#rocketChatId #rocketChatToken",
+  "remove-instance-param": "#idInstance",
+  "remove-instance-desc": "Remove an instance from the workspace",
+  "sync-app-url-desc": "Synchronize webhook URLs of all instances with the current app URL",
+  "update-token-desc": "Update Rocket.Chat authentication token",
+  "update-token-param": "#rocketChatId #newRocketChatToken"
+}
