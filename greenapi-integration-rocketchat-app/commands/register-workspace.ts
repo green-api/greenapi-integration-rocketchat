@@ -1,4 +1,5 @@
 import {
+	IEnvironmentWrite,
 	IHttp,
 	IModify,
 	IRead,
@@ -13,6 +14,8 @@ export class RegisterWorkspaceCommand implements ISlashCommand {
 	public i18nParamsExample = "";
 	public i18nDescription = "register-workspace-desc";
 	public providesPreview = false;
+
+	constructor(private readonly envWriter: IEnvironmentWrite) {}
 
 	public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp): Promise<void> {
 		const [rocketChatId, rocketChatToken] = context.getArguments();
@@ -44,10 +47,11 @@ export class RegisterWorkspaceCommand implements ISlashCommand {
 				`Error: ${response.data.error}: ${response.data.message}`);
 		}
 
+		await this.envWriter.getSettings().updateValue("command_token", response.data.commandToken);
+
 		return this.sendMessage(context, modify,
-			`Workspace registration successful. Your workspace command token is: ${response.data.commandToken}. ` +
-			`Please save this token in the app settings immediately. It will be required for all future commands, ` +
-			`including user registration.`);
+			`Workspace registration successful. Your workspace command token has been automatically saved in the app settings. ` +
+			`This token will be used for all future commands, including user registration.`);
 	}
 
 	private async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {

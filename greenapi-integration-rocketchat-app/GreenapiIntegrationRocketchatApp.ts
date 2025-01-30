@@ -44,7 +44,9 @@ export class GreenapiIntegrationRocketchatApp extends App {
 		await configuration.slashCommands.provideSlashCommand(new RemoveInstanceCommand());
 		await configuration.slashCommands.provideSlashCommand(new UpdateTokenCommand());
 		await configuration.slashCommands.provideSlashCommand(new SyncAppUrlCommand());
-		await configuration.slashCommands.provideSlashCommand(new RegisterWorkspaceCommand());
+		await configuration.slashCommands.provideSlashCommand(
+			new RegisterWorkspaceCommand(this.getAccessors().environmentWriter),
+		);
 		await configuration.slashCommands.provideSlashCommand(new ListUsersCommand());
 		await configuration.slashCommands.provideSlashCommand(new ListInstancesCommand());
 	}
