@@ -318,4 +318,7 @@ domain. It automatically updates the webhook URL settings for all your registere
 
 ## License
 
-MIT
+Licensed
+under [Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND 4.0)](https://creativecommons.org/licenses/by-nd/4.0/).
+
+[LICENSE](./LICENSE)

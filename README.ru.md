@@ -324,4 +324,7 @@ Rocket.Chat появится новый чат с этим сообщением.
 
 ## Лицензия
 
-MIT
+Лицензировано в соответствии
+с [Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND 4.0)](https://creativecommons.org/licenses/by-nd/4.0/).
+
+[LICENSE](./LICENSE)

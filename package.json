@@ -4,7 +4,7 @@
   "description": "GREEN-API Integration with Rocket.chat",
   "author": "GREEN-API team",
   "private": false,
-  "license": "MIT",
+  "license": "CC-BY-ND-4.0",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
