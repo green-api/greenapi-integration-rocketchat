@@ -45,7 +45,7 @@ export class SyncAppUrlCommand implements ISlashCommand {
 		}
 		await this.envWriter.getSettings().updateValue("app_url", appUrl);
 
-		return this.sendMessage(context, modify, "Successfully synchronized webhook urls of all instances with the new APP_URL");
+		return this.sendMessage(context, modify, response.data.message);
 	}
 
 	public async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {

@@ -48,9 +48,10 @@ export class RegisterWorkspaceCommand implements ISlashCommand {
 		}
 
 		await this.envWriter.getSettings().updateValue("command_token", response.data.commandToken);
+		await this.envWriter.getSettings().updateValue("webhook_token", response.data.webhookToken);
 
 		return this.sendMessage(context, modify,
-			`Workspace registration successful. Your workspace command token has been automatically saved in the app settings. ` +
+			`Workspace registration successful. Your workspace command and webhook tokens has been automatically saved in the app settings. ` +
 			`This token will be used for all future commands, including user registration.`);
 	}
 

@@ -226,12 +226,12 @@ the `/greenapi.register-agent` command. An agent will only receive incoming chat
 not available, the chat will go to the next available agent. If there are no available agents, the chat will be in the
 "Queued" status and will need to be manually taken.
 
-### ⚠️ Workspace Registration and Omnichannel Webhook
+### Message Quoting Behavior
 
-When using `/greenapi.register-workspace`, please note that this command will override any existing webhook
-configuration in your Omnichannel settings. This is because Rocket.Chat only supports one webhook endpoint for
-Omnichannel integrations. If you have any existing webhook integrations, they will be replaced with the GREEN-API
-webhook configuration.
+When using message quotes in Rocket.Chat:
+
+- Agents can quote customer messages from WhatsApp
+- If agents quote their own messages, these quotes won't be visible in WhatsApp, only the message itself.
 
 ## App usage
 
@@ -314,7 +314,8 @@ For admins:
 ```
 
 The sync-app-url command is particularly useful when you've changed your adapter's URL or moved it to a different
-domain. It automatically updates the webhook URL settings for all your registered GREEN-API instances.
+domain. It automatically updates the webhook URL settings for all your registered GREEN-API instances. Note: Your new
+app URL must end with "api/webhook/rocket" for proper webhook mapping.
 
 ## License
 

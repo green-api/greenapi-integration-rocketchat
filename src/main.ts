@@ -12,7 +12,7 @@ declare global {
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule, {
-		logger: GreenApiLogger.getInstance("NestJS"), bufferLogs: true,
+		logger: false, bufferLogs: true,
 	});
 	app.setGlobalPrefix("api");
 	app.use(helmet());

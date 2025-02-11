@@ -44,9 +44,22 @@ export interface RocketChatWebhook {
 			size: number;
 		};
 		attachments?: {
-			type: string;
 			description?: string;
-			title?: string;
+			title?: {
+				value: string | null;
+			};
+			author?: {
+				name: string;
+				link: string | null;
+				icon: string;
+			};
+			text?: string;
+			timestampLink?: string;
+			_unmappedProperties_?: {
+				attachments?: {
+					title: string;
+				}[];
+			};
 		}[];
 	}[];
 }

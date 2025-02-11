@@ -7,7 +7,6 @@ import {
 	GreenApiClient,
 } from "@green-api/greenapi-integration";
 import {
-	RegisterWorkspaceCommand,
 	RocketChatCommand,
 	RocketChatWebhook,
 	TransformedRocketChatWebhook,
@@ -69,7 +68,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 				const blob = new Blob([fileResponse.data], {type: message.file.mimeType});
 
 				const formData = new FormData();
-				formData.append("file", blob, message.file.fileName);
+				formData.append("file", blob, `${message.id}:greenapi:${message.file.fileName}`);
 				formData.append("msg", message.file.caption || "");
 
 				await client.post(`/livechat/upload/${room.rid}`, formData, {
@@ -131,31 +130,18 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		return {rid: response.data.room._id};
 	}
 
-	private async setupRocketChatWebhook(data: RegisterWorkspaceCommand, webhookToken: string) {
-		try {
-			await axios.post(`${data.rocketChatUrl}/api/v1/omnichannel/integrations`, {
-				LivechatWebhookUrl: process.env.APP_URL + "/api/webhook/rocket",
-				LivechatSecretToken: webhookToken,
-				LivechatWebhookOnAgentMessage: true,
-				LivechatHttpTimeout: 10000,
-			}, {
-				headers: {
-					"X-Auth-Token": data.rocketChatToken,
-					"X-User-Id": data.rocketChatId,
-				},
-			});
-		} catch (error) {
-			this.gaLogger.logErrorResponse(error, "setupRocketChatWebhook");
-			throw new BadRequestException("Incorrect data provided");
-		}
-	}
-
 	async handleCommand(body: RocketChatCommand) {
 		try {
 			switch (body.type) {
 				case "register-workspace": {
 					if (!body.rocketChatUrl || !body.rocketChatId || !body.rocketChatToken) {
 						throw new BadRequestException("All fields are required");
+					}
+					const existingWorkspace = await this.storage.workspace.findUnique(
+						{where: {url: body.rocketChatUrl}},
+					);
+					if (existingWorkspace) {
+						throw new BadRequestException("This workspace already exists");
 					}
 					this.gaLogger.info("Registering a Rocket.chat workspace", {
 						adminEmail: body.email,
@@ -165,14 +151,20 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					});
 					const commandToken = generateRandomToken(16);
 					const webhookToken = generateRandomToken(20);
-					await this.setupRocketChatWebhook(body, webhookToken);
 					await this.storage.createWorkspace({url: body.rocketChatUrl, commandToken, webhookToken});
-					return {commandToken};
+					return {commandToken, webhookToken};
 				}
 				case "register-agent": {
 					if (Object.values(body).some(value => !value)) {
 						throw new BadRequestException("All fields are required");
 					}
+					const existingUser = await this.storage.user.findUnique(
+						{where: {email: body.email}},
+					);
+					if (existingUser) {
+						throw new BadRequestException("This agent already exists");
+					}
+
 					this.gaLogger.info("Registering a Rocket.chat agent", {
 						email: body.email,
 						rocketChatId: body.rocketChatId,
@@ -271,28 +263,62 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					return this.removeInstance(BigInt(body.idInstance)).then(r => r.idInstance);
 				}
 				case "sync-app-url": {
-					try {
-						this.gaLogger.info("Synchonizing app url", {
-							email: body.email,
-							rocketChatId: body.rocketChatId,
-							url: body.rocketChatUrl,
-							appUrl: body.appUrl,
-							roles: body.roles,
-						});
-						const workspaceId = await this.storage.findWorkspace(body.rocketChatUrl).then(r => r.id);
-						const instances = await this.storage.getInstances(workspaceId, true);
+					this.gaLogger.info("Synchronizing app url", {
+						email: body.email,
+						rocketChatId: body.rocketChatId,
+						url: body.rocketChatUrl,
+						appUrl: body.appUrl,
+						roles: body.roles,
+					});
+					const workspaceId = await this.storage.findWorkspace(body.rocketChatUrl).then(r => r.id);
+					const instances = await this.storage.getInstances(workspaceId, true);
 
-						await Promise.all(instances.map(instance => {
+					const results = await Promise.allSettled(instances.map(async instance => {
+						try {
 							const greenApiClient = new GreenApiClient({
 								idInstance: instance.idInstance,
 								apiTokenInstance: instance.apiTokenInstance,
 							});
-							return greenApiClient.setSettings({webhookUrl: body.appUrl.replace("rocket", "green-api")});
-						}));
-					} catch (error) {
-						throw new Error(`Failed to update instance settings: ${error.message}`);
+							await greenApiClient.setSettings({webhookUrl: body.appUrl.replace("rocket", "green-api")});
+							return {success: true, instance};
+						} catch (error) {
+							return {
+								success: false,
+								instance,
+								error: error instanceof Error ? error.message : String(error),
+							};
+						}
+					}));
+
+					const failedInstances = results
+						.filter((result): result is PromiseRejectedResult | {
+							status: "fulfilled",
+							value: { success: false, instance: any, error: string }
+						} =>
+							result.status === "rejected" || (result.status === "fulfilled" && !result.value.success))
+						.map(result => {
+							if (result.status === "rejected") {
+								return {
+									idInstance: "Unknown",
+									error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+								};
+							}
+							return {
+								idInstance: result.value.instance.idInstance,
+								error: result.value.error,
+							};
+						});
+
+					const successCount = results.filter(r => r.status === "fulfilled" && r.value.success).length;
+
+					let message = `Synchronized ${successCount} out of ${instances.length} instances.`;
+					if (failedInstances.length > 0) {
+						message += "\n\nFailed instances:\n" + failedInstances
+							.map(instance => `Instance ID: ${instance.idInstance}\nError: ${instance.error}`)
+							.join("\n\n");
 					}
-					break;
+
+					return {message};
 				}
 				case "list-instances": {
 					this.gaLogger.info("Listing instances", {
