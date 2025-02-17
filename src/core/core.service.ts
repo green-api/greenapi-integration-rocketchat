@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import {
 	BaseAdapter,
 	generateRandomToken,
@@ -335,7 +335,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					const instances = await this.storage.getInstances(workspace.id);
 
 					if (instances.length === 0) {
-						return {message: "No instances found in this workspace."};
+						throw new NotFoundException("No instances found in this workspace.");
 					}
 
 					const formattedInstances = instances.map(instance =>
@@ -372,7 +372,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 					});
 
 					if (users.length === 0) {
-						return {message: "No users found in this workspace."};
+						throw new NotFoundException("No users found in this workspace.");
 					}
 
 					const formattedUsers = users.map(user =>
