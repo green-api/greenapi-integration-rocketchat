@@ -38,7 +38,7 @@ export class GreenapiIntegrationRocketchatApp extends App implements IPostMessag
 			public: false,
 			required: false,
 			i18nLabel: "Command token",
-			i18nDescription: "The command token for API requests. You will need to manually input here the generated token after you call the 'greenapi.register' command.",
+			i18nDescription: "The command token for API requests.",
 		});
 		await configuration.settings.provideSetting({
 			id: "webhook_token",
@@ -65,32 +65,33 @@ export class GreenapiIntegrationRocketchatApp extends App implements IPostMessag
 
 	public async executePostMessageSent(message: IMessage, read: IRead, http: IHttp): Promise<void> {
 		if (message.room.type !== "l") {
-			this.getLogger().debug("Skipping non-livechat room message");
+			this.getLogger().warn("Skipping non-livechat room message");
 			return;
 		}
 
 		if ("token" in message || message.sender.type !== "user") {
-			this.getLogger().debug("Skipping non-agent message");
+			this.getLogger().warn("Skipping non-agent message");
 			return;
 		}
 
 		const messageData = await read.getMessageReader().getById(message.id!) as any;
 
 		if (!messageData) {
-			this.getLogger().debug("Could not get message data");
+			this.getLogger().warn("Could not get message data");
 			return;
 		}
 
 		const visitor = messageData.room.visitor;
 		if (!visitor || !visitor.token || !visitor.token.startsWith("greenapi:")) {
-			this.getLogger().debug("No valid visitor data found");
+			this.getLogger().warn("No valid visitor data found");
 			return;
 		}
-
 		const appUrl = await read.getEnvironmentReader().getSettings().getValueById("app_url");
 		const webhookToken = await read.getEnvironmentReader().getSettings().getValueById("webhook_token");
+		const rocketChatUrl = await read.getEnvironmentReader().getServerSettings().getValueById("Site_Url");
 
 		const webhook = {
+			url: rocketChatUrl,
 			_id: messageData.id,
 			label: messageData.room.displayName,
 			createdAt: messageData.createdAt,
@@ -124,9 +125,7 @@ export class GreenapiIntegrationRocketchatApp extends App implements IPostMessag
 				rid: messageData.room.id,
 				agentId: messageData.room.servedBy.id,
 				_updatedAt: messageData.updatedAt,
-				fileUpload: messageData.room._unmappedProperties_.lastMessage.fileUpload || undefined,
 				attachments: messageData.attachments || undefined,
-				file: messageData.room._unmappedProperties_.lastMessage.file || undefined,
 			}],
 		};
 

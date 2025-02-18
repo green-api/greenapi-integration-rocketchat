@@ -1,4 +1,5 @@
 export interface RocketChatWebhook {
+	url: string;
 	_id: string;
 	label: string;
 	createdAt: string;
@@ -32,28 +33,18 @@ export interface RocketChatWebhook {
 		rid: string;
 		agentId: string;
 		_updatedAt: string;
-		file?: {
-			_id: string;
-			name: string;
-			type: string;
-			size: number;
-		};
-		fileUpload?: {
-			publicFilePath: string;
-			type: string;
-			size: number;
-		};
 		attachments?: {
+			imageUrl: string;
 			description?: string;
 			title?: {
 				value: string | null;
+				link: string;
 			};
 			author?: {
 				name: string;
 				link: string | null;
 				icon: string;
 			};
-			text?: string;
 			timestampLink?: string;
 			_unmappedProperties_?: {
 				attachments?: {

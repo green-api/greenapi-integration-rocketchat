@@ -211,6 +211,19 @@ For self-hosted deployments, make sure to:
 3. Configure SSL/TLS for secure communication
 4. Set the APP_URL environment variable to your public URL
 
+### File Sharing Configuration
+
+For agents to be able to send files to WhatsApp, you need to ensure that public file access is enabled in your
+Rocket.Chat workspace. To configure this:
+
+1. Click ⋮ (three vertical dots) in the top left corner of the Rocket.Chat home page
+2. Click workspace
+3. Click settings at the bottom of the sidebar
+4. Search for "File Upload" and open it.
+5. Disable setting "Protect Uploaded Files"
+
+If this setting remains enabled, agents will not be able to send files to WhatsApp contacts.
+
 ### Setting Up Livechat Agents in Rocket.Chat
 
 Before registering as an agent in this integration, users need to be set up as livechat agents in Rocket.Chat:

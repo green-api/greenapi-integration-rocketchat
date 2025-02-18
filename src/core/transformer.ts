@@ -149,25 +149,20 @@ ID: ${webhook.messageData.quotedMessage.stanzaId}\n\n`
 		const chatId = webhook.visitor.username.split(":")[1];
 		let quotedMessageId: string | undefined;
 
-		const isAgentQuote = message.attachments?.[0]?.author?.name !== "Damir";
-
-		if (!isAgentQuote) {
-			if (message.attachments?.[1]?._unmappedProperties_?.attachments?.[0]?.title?.includes(":greenapi:")) {
-				quotedMessageId = message.attachments[1]._unmappedProperties_.attachments[0].title.split(":greenapi:")[0];
-			} else if (message.attachments?.[0]?._unmappedProperties_?.attachments?.[0]?.title?.includes(":greenapi:")) {
-				quotedMessageId = message.attachments[0]._unmappedProperties_.attachments[0].title.split(":greenapi:")[0];
-			} else if (message.msg?.includes("?msg=")) {
-				quotedMessageId = message.msg.split("?msg=")[1].split("greenapi:")[1].split(")")[0];
-			}
+		if (message.attachments?.[1]?._unmappedProperties_?.attachments?.[0]?.title?.includes(":greenapi:")) {
+			quotedMessageId = message.attachments[1]._unmappedProperties_.attachments[0].title.split(":greenapi:")[0];
+		} else if (message.attachments?.[0]?._unmappedProperties_?.attachments?.[0]?.title?.includes(":greenapi:")) {
+			quotedMessageId = message.attachments[0]._unmappedProperties_.attachments[0].title.split(":greenapi:")[0];
+		} else if (message.msg?.includes("?msg=")) {
+			quotedMessageId = message.msg.split("?msg=")[1].split("greenapi:")[1].split(")")[0];
 		}
-
-		if (message.fileUpload) {
+		if (message.attachments?.[0] && (message.msg === "" || message.msg?.endsWith(")\n"))) {
 			return {
 				type: "url-file" as const,
 				chatId,
 				file: {
-					url: message.fileUpload.publicFilePath,
-					fileName: message.file?.name || "file",
+					url: webhook.url + message.attachments[0].title.link,
+					fileName: message.attachments[0].title?.value || "file",
 				},
 				caption: message.attachments?.[0]?.description,
 				quotedMessageId,
