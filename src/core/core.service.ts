@@ -23,6 +23,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 		protected readonly transformer: RocketChatTransformer,
 	) {
 		super(transformer, storage);
+		this.gaLogger.info("Starting the service");
 	}
 
 	async createPlatformClient(instance: Instance): Promise<AxiosInstance> {
