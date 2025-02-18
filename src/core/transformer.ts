@@ -33,6 +33,42 @@ export class RocketChatTransformer extends MessageTransformer<RocketChatWebhook,
 ${location.address ? `📮 ${location.address}\n` : ""}
 📌 https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
 
+			case "stickerMessage":
+				return `📎 ${quotedMessage.typeMessage.replace("Message", "")}${quotedMessage.caption ? `\nCaption: ${quotedMessage.caption}` : ""}`;
+
+			case "buttonsMessage":
+				const buttonsList = quotedMessage.buttons
+					.map(button => `• ${button.buttonText}`)
+					.join("\n");
+				return `🔘 Message with buttons:\n${quotedMessage.contentText}\n\nButtons:\n${buttonsList}`;
+
+			case "listMessage":
+				const sectionsList = quotedMessage.sections
+					.map(section => {
+						const options = section.rows
+							.map(row => `  • ${row.title}${row.description ? `: ${row.description}` : ""}`)
+							.join("\n");
+						return `${section.title}:\n${options}`;
+					})
+					.join("\n\n");
+				return `📝 List message:\n${quotedMessage.contentText}\n\n${sectionsList}`;
+
+			case "templateMessage":
+				const templateButtons = quotedMessage.buttons
+					.map(button => {
+						if (button.urlButton) return `• Link: ${button.urlButton.displayText}`;
+						if (button.callButton) return `• Call: ${button.callButton.displayText}`;
+						if (button.quickReplyButton) return `• Reply: ${button.quickReplyButton.displayText}`;
+						return null;
+					})
+					.filter(Boolean)
+					.join("\n");
+				return `📋 Template message:\n${quotedMessage.contentText}\n\n${templateButtons}`;
+
+			case "groupInviteMessage":
+				const invite = quotedMessage.groupInviteMessageData;
+				return `👥 Group invitation: ${invite.groupName}\n📝 ${invite.caption}`;
+
 			case "imageMessage":
 			case "videoMessage":
 			case "documentMessage":
@@ -119,6 +155,84 @@ ID: ${webhook.messageData.quotedMessage.stanzaId}\n\n`
 						msg: `${quotedMessageText}${pollText}`,
 					};
 				}
+				case "editedMessage": {
+					const editedText = webhook.messageData.editedMessageData?.textMessage ??
+						webhook.messageData.editedMessageData?.caption ?? "";
+
+					return {
+						...baseMessage,
+						msg: `✏️ Message edited:\n${editedText}\nID: ${webhook.messageData.editedMessageData?.stanzaId}`,
+					};
+				}
+				case "deletedMessage": {
+					return {
+						...baseMessage,
+						msg: `🗑️ Message deleted\nID: ${webhook.messageData.deletedMessageData?.stanzaId || "unknown"}`,
+					};
+				}
+				case "buttonsMessage": {
+					const buttons = webhook.messageData.buttonsMessage;
+					const buttonsList = buttons.buttons
+						.map(button => `• ${button.buttonText}`)
+						.join("\n");
+					return {
+						...baseMessage,
+						msg: `${quotedMessageText}🔘 ${buttons.contentText}\n\nButtons:\n${buttonsList}${buttons.footer ? `\n\n${buttons.footer}` : ""}`,
+					};
+				}
+
+				case "listMessage": {
+					const list = webhook.messageData.listMessage;
+					const sections = list.sections
+						.map(section => {
+							const options = section.rows
+								.map(row => `  • ${row.title}${row.description ? `: ${row.description}` : ""}`)
+								.join("\n");
+							return `${section.title}:\n${options}`;
+						})
+						.join("\n\n");
+					return {
+						...baseMessage,
+						msg: `${quotedMessageText}📝 ${list.contentText}\n\n${sections}${list.footer ? `\n\n${list.footer}` : ""}`,
+					};
+				}
+
+				case "templateMessage": {
+					const template = webhook.messageData.templateMessage;
+					const buttons = template.buttons
+						.map(button => {
+							if (button.urlButton) return `• Link: ${button.urlButton.displayText}`;
+							if (button.callButton) return `• Call: ${button.callButton.displayText}`;
+							if (button.quickReplyButton) return `• Reply: ${button.quickReplyButton.displayText}`;
+							return null;
+						})
+						.filter(Boolean)
+						.join("\n");
+					return {
+						...baseMessage,
+						msg: `${quotedMessageText}📋 ${template.contentText}\n\n${buttons}${template.footer ? `\n\n${template.footer}` : ""}`,
+					};
+				}
+
+				case "groupInviteMessage": {
+					const invite = webhook.messageData.groupInviteMessageData;
+					return {
+						...baseMessage,
+						msg: `${quotedMessageText}👥 Group Invitation\n📝 Group: ${invite.groupName}\n${invite.caption}`,
+					};
+				}
+
+				case "stickerMessage":
+					return {
+						...baseMessage,
+						msg: quotedMessageText,
+						file: {
+							url: webhook.messageData.fileMessageData.downloadUrl,
+							fileName: webhook.messageData.fileMessageData.fileName,
+							caption: webhook.messageData.fileMessageData.caption,
+							mimeType: webhook.messageData.fileMessageData.mimeType,
+						},
+					};
 				case "documentMessage":
 				case "videoMessage":
 				case "imageMessage":
