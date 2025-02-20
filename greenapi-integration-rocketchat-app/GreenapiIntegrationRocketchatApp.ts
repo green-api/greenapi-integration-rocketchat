@@ -1,7 +1,7 @@
 import {
 	IAppAccessors,
 	IConfigurationExtend, IHttp,
-	ILogger, IRead,
+	ILogger, IModify, IPersistence, IRead,
 } from "@rocket.chat/apps-engine/definition/accessors";
 import { App } from "@rocket.chat/apps-engine/definition/App";
 import { IAppInfo } from "@rocket.chat/apps-engine/definition/metadata";
@@ -63,14 +63,14 @@ export class GreenapiIntegrationRocketchatApp extends App implements IPostMessag
 		await configuration.slashCommands.provideSlashCommand(new ListInstancesCommand());
 	}
 
-	public async executePostMessageSent(message: IMessage, read: IRead, http: IHttp): Promise<void> {
+	public async executePostMessageSent(message: IMessage, read: IRead, http: IHttp, _: IPersistence, modify: IModify): Promise<void> {
 		if (message.room.type !== "l") {
 			this.getLogger().warn("Skipping non-livechat room message");
 			return;
 		}
 
-		if ("token" in message || message.sender.type !== "user") {
-			this.getLogger().warn("Skipping non-agent message");
+		if ("token" in message || message.sender.type !== "user" || message.text?.startsWith("GA Error: ⚠️ Message")) {
+			this.getLogger().warn("Skipping non-agent message or notification message");
 			return;
 		}
 
@@ -129,12 +129,31 @@ export class GreenapiIntegrationRocketchatApp extends App implements IPostMessag
 			}],
 		};
 
-		await http.post(appUrl, {
-			data: webhook,
-			headers: {
-				"Content-Type": "application/json",
-				"X-Rocketchat-Livechat-Token": webhookToken,
-			},
-		});
+		try {
+			const response = await http.post(appUrl, {
+				data: webhook,
+				headers: {
+					"Content-Type": "application/json",
+					"X-Rocketchat-Livechat-Token": webhookToken,
+				},
+			});
+
+			if (response.statusCode === 200 && response.data?.message) {
+				const messageStructure = modify.getCreator().startMessage()
+					.setSender(message.sender)
+					.setRoom(message.room)
+					.setText(`GA Error: ⚠️ Message not delivered: ${response.data.message}`);
+
+				await modify.getCreator().finish(messageStructure);
+			}
+		} catch (error) {
+			this.getLogger().error("Error sending message:", error);
+			const messageStructure = modify.getCreator().startMessage()
+				.setSender(message.sender)
+				.setRoom(message.room)
+				.setText("GA Error: ⚠️ Message could not be delivered due to a network error");
+
+			await modify.getCreator().finish(messageStructure);
+		}
 	}
 }
