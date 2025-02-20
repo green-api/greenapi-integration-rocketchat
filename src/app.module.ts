@@ -7,7 +7,7 @@ import { ThrottlerModule } from "@nestjs/throttler";
 @Module({
 	imports: [DatabaseModule, CoreModule, GatewayModule, ThrottlerModule.forRoot([{
 		ttl: 1000,
-		limit: 100,
+		limit: 100000,
 	}])],
 })
 export class AppModule {}
