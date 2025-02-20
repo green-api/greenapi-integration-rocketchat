@@ -115,7 +115,7 @@ export class CoreService extends BaseAdapter<RocketChatWebhook, TransformedRocke
 			visitor: {
 				token: `greenapi:${wid}:${cleanToken}`,
 				name,
-				phone: cleanToken,
+				phone: `Client: ${cleanToken}; Agent: ${wid}`,
 				username: `greenapi:${token}`,
 			},
 		});
