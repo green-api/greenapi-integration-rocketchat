@@ -25,7 +25,7 @@ export class GreenapiIntegrationRocketchatApp extends App implements IPostMessag
 		await configuration.settings.provideSetting({
 			id: "app_url",
 			type: SettingType.STRING,
-			packageValue: "https://greenapi.rc.greenapi.org/api/webhook/rocket",
+			packageValue: "https://rocketchat.int.green-api.com/api/webhook/rocket",
 			public: true,
 			required: true,
 			i18nLabel: "App URL",

@@ -55,7 +55,7 @@
 1. Склонируйте репозиторий:
 
 ```bash
-git clone [repository-url]
+git clone https://github.com/green-api/greenapi-integration-rocketchat.git
 cd greenapi-integration-rocketchat
 ```
 

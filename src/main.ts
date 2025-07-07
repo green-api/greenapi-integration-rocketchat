@@ -1,7 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import helmet from "helmet";
-import { GreenApiLogger, Settings } from "@green-api/greenapi-integration";
+import { Settings } from "@green-api/greenapi-integration";
 
 declare global {
 	namespace PrismaJson {
