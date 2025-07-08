@@ -1,18 +1,18 @@
 {
-    "id": "e592b5e2-3d3d-4666-8c49-94a860733a58",
-    "version": "1.0.2",
-    "requiredApiVersion": "^1.44.0",
-    "iconFile": "icon.png",
-    "author": {
-        "name": "GREEN-API",
-        "homepage": "green-api.com",
-        "support": "support.green-api.com"
-    },
-    "name": "GREEN-API WhatsApp",
-    "nameSlug": "greenapi",
-    "classFile": "GreenapiIntegrationRocketchatApp.ts",
-    "description": "An app for connecting rocket.chat with GREEN-API",
-    "implements": [
-        "IPostMessageSent"
-    ]
+  "id": "e592b5e2-3d3d-4666-8c49-94a860733a58",
+  "version": "1.0.3",
+  "requiredApiVersion": "^1.44.0",
+  "iconFile": "icon.png",
+  "author": {
+    "name": "GREEN-API",
+    "homepage": "green-api.com",
+    "support": "support.green-api.com"
+  },
+  "name": "GREEN-API WhatsApp",
+  "nameSlug": "greenapi",
+  "classFile": "GreenapiIntegrationRocketchatApp.ts",
+  "description": "GREEN-API WhatsApp enables seamless integration of WhatsApp messaging directly within your Rocket.Chat workspace. With this app, your livechat agents can send and receive WhatsApp messages, manage conversations, and engage with customers—all from a single interface.\n\nTo get started, administrators register the workspace using their Rocket.Chat credentials, then livechat agents register themselves and connect their GREEN-API instance by entering their Instance ID and API Token from the GREEN-API Console. Once connected, all messages sent to the WhatsApp number linked to the instance will be synced with your workspace, allowing agents to monitor, reply, and manage chats without switching platforms.\n\nThe integration supports multi-agent environments with automatic chat distribution to available agents. Agents can send text messages, share files, and maintain professional customer support workflows directly within Rocket.Chat.\n\nIdeal for businesses that rely on WhatsApp for customer support, lead generation, or sales communication, this app streamlines workflow and enhances client engagement.",
+  "implements": [
+    "IPostMessageSent"
+  ]
 }
